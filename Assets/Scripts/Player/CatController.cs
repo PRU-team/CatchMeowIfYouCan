@@ -159,7 +159,7 @@ namespace CatchMeowIfYouCan.Player
             if (!IsAlive || !IsGrounded || IsSliding) return;
             
             float jumpMultiplier = hasRocketShoes ? rocketShoesMultiplier : 1f;
-            rb.velocity = new Vector2(rb.velocity.x, jumpForce * jumpMultiplier);
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce * jumpMultiplier);
             
             if (catAnimator != null)
             {
@@ -307,7 +307,7 @@ namespace CatchMeowIfYouCan.Player
             if (!IsAlive) return;
             
             IsAlive = false;
-            rb.velocity = Vector2.zero;
+            rb.linearVelocity = Vector2.zero;
             
             if (catAnimator != null)
             {

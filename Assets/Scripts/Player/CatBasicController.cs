@@ -116,7 +116,7 @@ public class CatController : MonoBehaviour
     {
         if (isGrounded && !isSliding)
         {
-            rb.velocity = new Vector2(rb.velocity.x, 0); // Reset vertical velocity
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, 0); // Reset vertical velocity
             rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
             isGrounded = false;
             
