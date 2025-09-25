@@ -216,7 +216,7 @@ namespace CatchMeowIfYouCan.PowerUps
             
             // Apply extra jump force
             Vector2 jumpForce = Vector2.up * (originalJumpForce * jumpBoostMultiplier);
-            playerRigidbody.velocity = new Vector2(playerRigidbody.velocity.x, 0); // Reset vertical velocity
+            playerRigidbody.linearVelocity = new Vector2(playerRigidbody.linearVelocity.x, 0); // Reset vertical velocity
             playerRigidbody.AddForce(jumpForce, ForceMode2D.Impulse);
             
             // Play jump effects
@@ -471,7 +471,7 @@ namespace CatchMeowIfYouCan.PowerUps
             if (!rocketEffectsActive || playerRigidbody == null) return;
             
             // Modulate effects based on movement
-            float velocityMagnitude = playerRigidbody.velocity.magnitude;
+            float velocityMagnitude = playerRigidbody.linearVelocity.magnitude;
             float effectIntensity = Mathf.Clamp01(velocityMagnitude / 10f);
             
             // Update particle emission rates

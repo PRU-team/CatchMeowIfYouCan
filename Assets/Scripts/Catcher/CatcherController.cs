@@ -320,7 +320,7 @@ namespace CatchMeowIfYouCan.Catcher
             }
             
             // Stop movement
-            rb.velocity = Vector2.zero;
+            rb.linearVelocity = Vector2.zero;
             
             // Notify systems
             OnPlayerCaught?.Invoke();
@@ -383,7 +383,7 @@ namespace CatchMeowIfYouCan.Catcher
             
             if (!active)
             {
-                rb.velocity = Vector2.zero;
+                rb.linearVelocity = Vector2.zero;
             }
         }
         
