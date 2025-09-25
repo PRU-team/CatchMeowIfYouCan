@@ -94,6 +94,7 @@
     <Compile Include="Assets/Scripts/Environment/StreetGenerator.cs" />
     <Compile Include="Assets/Scripts/Collectibles/CoinCollectible.cs" />
     <Compile Include="Assets/Scripts/PowerUps/MagnetPowerUp.cs" />
+    <Compile Include="Assets/Scripts/Player/CatBasicController.cs" />
     <Compile Include="Assets/Scripts/Player/CatAnimator.cs" />
     <Compile Include="Assets/Scripts/UI/PauseMenuUI.cs" />
     <Compile Include="Assets/Scripts/UI/GameOverUI.cs" />
