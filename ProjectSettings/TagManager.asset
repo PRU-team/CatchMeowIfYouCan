@@ -8,15 +8,15 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - Player
+  - Ground
   - Water
   - UI
-  - Ground
-  - Obstacle
-  - 
-  - 
-  - 
-  - 
+  - Player
+  - Obstacles
+  - Collectibles
+  - PowerUps
+  - Catcher
+  - UI
   - 
   - 
   - 
