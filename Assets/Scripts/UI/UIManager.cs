@@ -315,10 +315,10 @@ namespace CatchMeowIfYouCan.UI
         {
             yield return new WaitForSeconds(1f); // Brief loading time
             
-            if (gameManager != null)
-            {
-                gameManager.StartGame();
-            }
+            //if (gameManager != null)
+            //{
+            //    gameManager.StartGame();
+            //}
             
             ShowScreen(UIScreen.Gameplay);
         }
@@ -370,10 +370,10 @@ namespace CatchMeowIfYouCan.UI
             // Clear screen stack
             screenStack.Clear();
             
-            if (gameManager != null)
-            {
-                gameManager.RestartGame();
-            }
+            //if (gameManager != null)
+            //{
+            //    gameManager.RestartGame();
+            //}
             
             ShowScreen(UIScreen.Gameplay);
         }
