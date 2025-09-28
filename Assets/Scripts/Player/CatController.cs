@@ -1,368 +1,466 @@
 using UnityEngine;
-using System.Collections;
 
 namespace CatchMeowIfYouCan.Player
 {
     /// <summary>
-    /// Main controller for the cat player
-    /// Handles movement between lanes, jumping, sliding, and collision detection
+    /// Simple cat controller with basic movement, jumping, and ground detection
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D))]
     public class CatController : MonoBehaviour
     {
         [Header("Movement Settings")]
-        [SerializeField] private float forwardSpeed = 5f;
-        [SerializeField] private float laneChangeSpeed = 10f;
-        [SerializeField] private float jumpForce = 15f;
-        [SerializeField] private float slideHeight = 0.5f;
-        [SerializeField] private float slideDuration = 1f;
-        
-        [Header("Lane Settings")]
-        [SerializeField] private float[] lanePositions = { -2f, 0f, 2f }; // Left, Center, Right
-        [SerializeField] private int currentLane = 1; // Start in center lane
+        [SerializeField] private float moveSpeed = 8f;
+        [SerializeField] private float jumpForce = 12f;
         
         [Header("Ground Check")]
         [SerializeField] private Transform groundCheck;
         [SerializeField] private float groundCheckRadius = 0.3f;
         [SerializeField] private LayerMask groundLayerMask = 1;
         
-        [Header("Power-Ups")]
-        [SerializeField] private bool hasRocketShoes = false;
-        [SerializeField] private float rocketShoesMultiplier = 2f;
+        [Header("Character Flipping")]
+        [SerializeField] private bool facingRight = true;
         
         // Components
         private Rigidbody2D rb;
-        private Collider2D col;
-        private CatInput input;
-        private CatAnimator catAnimator;
+        private Vector3 originalScale;
+        private Animator animator;
         
-        // State tracking
+        // State
         public bool IsGrounded { get; private set; }
-        public bool IsSliding { get; private set; }
-        public bool IsMovingBetweenLanes { get; private set; }
         public bool IsAlive { get; private set; } = true;
         
-        // Movement
-        private Vector3 targetPosition;
-        private Coroutine slideCoroutine;
+        // Input
+        private float horizontalInput;
         
-        // Events
+        // Events - Thêm các events mà các script khác cần
+        public System.Action OnDeath;
         public System.Action<int> OnCoinCollected;
         public System.Action<string> OnPowerUpCollected;
-        public System.Action OnDeath;
         
         private void Awake()
         {
             rb = GetComponent<Rigidbody2D>();
-            col = GetComponent<Collider2D>();
-            input = GetComponent<CatInput>();
-            catAnimator = GetComponent<CatAnimator>();
+            originalScale = transform.localScale;
             
-            // Set initial position
-            targetPosition = new Vector3(lanePositions[currentLane], transform.position.y, transform.position.z);
-            transform.position = targetPosition;
+            animator = GetComponent<Animator>();
         }
-        
+
         private void Start()
         {
-            SetupInputEvents();
+
+            // Kiểm tra ground setup
+            CheckGroundSetup();
         }
-        
-        private void SetupInputEvents()
+
+        private void UpdateAnimation()
         {
-            if (input != null)
+            bool isRunning = Mathf.Abs(rb.linearVelocity.x) > 0.1f;
+            bool isJumping = !IsGrounded;
+            if (animator != null)
             {
-                input.OnSwipeLeft += MoveLeft;
-                input.OnSwipeRight += MoveRight;
-                input.OnSwipeUp += Jump;
-                input.OnSwipeDown += Slide;
+                animator.SetBool("IsRunning", isRunning);
+                animator.SetBool("IsJumpping", isJumping);
             }
         }
-        
+
+        /// <summary>
+        /// Kiểm tra và cảnh báo về ground setup
+        /// </summary>
+        private void CheckGroundSetup()
+        {
+            if (groundCheck == null)
+            {
+                Debug.LogWarning("GroundCheck Transform is not assigned! Using fallback raycast method.");
+            }
+
+            // Kiểm tra xem có ground objects nào trong scene không
+            GameObject[] allObjects = FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+            bool foundGroundLayer = false;
+
+            foreach (GameObject obj in allObjects)
+            {
+                if (((1 << obj.layer) & groundLayerMask) != 0)
+                {
+                    foundGroundLayer = true;
+                    Debug.Log($"Found ground object: {obj.name} on layer {obj.layer}");
+                    break;
+                }
+            }
+        }
+
         private void Update()
         {
             if (!IsAlive) return;
-            
-            CheckGrounded();
-            MoveForward();
-            HandleLaneMovement();
-            UpdateAnimatorStates();
+
+            HandleInput();
+            HandleGroundCheck();
+            HandleMovement();
+            HandleJump();
+            CheckBoundaries();
+            UpdateAnimation();
         }
         
-        private void CheckGrounded()
+        /// <summary>
+        /// Kiểm tra và giới hạn player trong boundaries
+        /// </summary>
+        private void CheckBoundaries()
         {
-            IsGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayerMask);
-        }
-        
-        private void MoveForward()
-        {
-            // Constant forward movement
-            transform.Translate(Vector3.right * forwardSpeed * Time.deltaTime);
-        }
-        
-        private void HandleLaneMovement()
-        {
-            if (IsMovingBetweenLanes)
+            // Nếu player rơi quá sâu, reset về vị trí an toàn
+            if (transform.position.y < -10f)
             {
-                // Smooth movement to target lane
-                Vector3 currentPos = transform.position;
-                Vector3 newPos = Vector3.MoveTowards(currentPos, targetPosition, laneChangeSpeed * Time.deltaTime);
-                transform.position = newPos;
+                Debug.LogWarning($"Player fell too deep (Y: {transform.position.y}), resetting to safe position");
+                Vector3 safePos = new Vector3(0f, 2f, transform.position.z);
+                transform.position = safePos;
                 
-                // Check if reached target
-                if (Vector3.Distance(transform.position, targetPosition) < 0.1f)
+                if (rb != null)
                 {
-                    transform.position = targetPosition;
-                    IsMovingBetweenLanes = false;
+                    rb.linearVelocity = Vector2.zero;
                 }
             }
         }
         
-        private void UpdateAnimatorStates()
+        /// <summary>
+        /// Xử lý input từ bàn phím
+        /// </summary>
+        private void HandleInput()
         {
-            if (catAnimator != null)
+            // Horizontal movement input
+            horizontalInput = 0f;
+            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
             {
-                catAnimator.SetGrounded(IsGrounded);
-                catAnimator.SetSliding(IsSliding);
-                catAnimator.SetMovingBetweenLanes(IsMovingBetweenLanes);
+                horizontalInput = -1f;
+                Debug.Log("Input: Moving LEFT");
             }
-        }
-        
-        #region Input Handlers
-        
-        private void MoveLeft()
-        {
-            if (!IsAlive || IsMovingBetweenLanes) return;
+            else if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
+            {
+                horizontalInput = 1f;
+                Debug.Log("Input: Moving RIGHT");
+            }
             
-            if (currentLane > 0)
+            // Debug input
+            if (Time.frameCount % 60 == 0) // Log mỗi giây
             {
-                currentLane--;
-                targetPosition = new Vector3(lanePositions[currentLane], transform.position.y, transform.position.z);
-                IsMovingBetweenLanes = true;
+                Debug.Log($"Input: {horizontalInput}, IsAlive: {IsAlive}");
             }
         }
         
-        private void MoveRight()
+        /// <summary>
+        /// Kiểm tra nhân vật có đang trên mặt đất không
+        /// </summary>
+        private void HandleGroundCheck()
         {
-            if (!IsAlive || IsMovingBetweenLanes) return;
+            bool wasGrounded = IsGrounded;
             
-            if (currentLane < lanePositions.Length - 1)
+            if (groundCheck != null)
             {
-                currentLane++;
-                targetPosition = new Vector3(lanePositions[currentLane], transform.position.y, transform.position.z);
-                IsMovingBetweenLanes = true;
+                IsGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayerMask);
+            }
+            else
+            {
+                // Fallback: kiểm tra bằng raycast xuống dưới từ center của nhân vật
+                Vector2 rayStart = new Vector2(transform.position.x, transform.position.y - 0.5f);
+                RaycastHit2D hit = Physics2D.Raycast(rayStart, Vector2.down, 1f, groundLayerMask);
+                IsGrounded = hit.collider != null;
+                
+                // Debug log chỉ khi có thay đổi
+                if (hit.collider != null && !wasGrounded)
+                {
+                    Debug.Log($"Ground detected: {hit.collider.name} on layer {hit.collider.gameObject.layer}");
+                }
+                
+                // Kiểm tra tất cả các layer để debug
+                if (!IsGrounded)
+                {
+                    RaycastHit2D allLayersHit = Physics2D.Raycast(rayStart, Vector2.down, 1f);
+                    if (Time.frameCount % 120 == 0 && allLayersHit.collider != null) // Log mỗi 2 giây
+                    {
+                        Debug.Log($"Found collider but wrong layer: {allLayersHit.collider.name} on layer {allLayersHit.collider.gameObject.layer}, LayerMask: {groundLayerMask.value}");
+                    }
+                }
+            }
+            
+            // Debug thêm thông tin - giảm tần suất
+            if (Time.frameCount % 120 == 0) // Log mỗi 2 giây
+            {
+                Debug.Log($"IsGrounded: {IsGrounded}, Position Y: {transform.position.y:F2}, Velocity Y: {rb.linearVelocity.y:F2}, RB BodyType: {rb.bodyType}");
             }
         }
         
+        /// <summary>
+        /// Xử lý di chuyển ngang và lật nhân vật
+        /// </summary>
+        private void HandleMovement()
+        {
+            // Kiểm tra Rigidbody2D constraints
+            if (rb == null)
+            {
+                Debug.LogError("Rigidbody2D is null!");
+                return;
+            }
+            
+            // Kiểm tra nếu position bị freeze
+            if ((rb.constraints & RigidbodyConstraints2D.FreezePositionX) != 0)
+            {
+                Debug.LogWarning("X position is frozen in Rigidbody2D constraints!");
+                rb.constraints = RigidbodyConstraints2D.FreezeRotation; // Chỉ freeze rotation
+            }
+            
+            // Di chuyển ngang
+            Vector2 velocity = rb.linearVelocity;
+            Vector2 oldVelocity = velocity;
+            velocity.x = horizontalInput * moveSpeed;
+            rb.linearVelocity = velocity;
+            
+            // Debug movement
+            if (horizontalInput != 0)
+            {
+                Debug.Log($"Movement - Input: {horizontalInput}, OldVel: {oldVelocity.x}, NewVel: {velocity.x}, Position: {transform.position.x}");
+            }
+            
+            // Lật nhân vật theo hướng di chuyển
+            if (horizontalInput > 0 && !facingRight)
+            {
+                Flip();
+            }
+            else if (horizontalInput < 0 && facingRight)
+            {
+                Flip();
+            }
+        }
+        
+        /// <summary>
+        /// Xử lý nhảy đơn giản
+        /// </summary>
+        private void HandleJump()
+        {
+            // Chỉ nhảy khi đang trên mặt đất
+            if (IsGrounded && (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow)))
+            {
+                Jump();
+            }
+        }
+        
+        /// <summary>
+        /// Thực hiện nhảy
+        /// </summary>
         private void Jump()
         {
-            if (!IsAlive || !IsGrounded || IsSliding) return;
+            Vector2 velocity = rb.linearVelocity;
+            velocity.y = jumpForce;
+            rb.linearVelocity = velocity;
+        }
+        
+        /// <summary>
+        /// Lật nhân vật
+        /// </summary>
+        private void Flip()
+        {
+            facingRight = !facingRight;
             
-            float jumpMultiplier = hasRocketShoes ? rocketShoesMultiplier : 1f;
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce * jumpMultiplier);
-            
-            if (catAnimator != null)
+            if (facingRight)
             {
-                catAnimator.TriggerJump();
+                transform.localScale = originalScale;
+            }
+            else
+            {
+                transform.localScale = new Vector3(-originalScale.x, originalScale.y, originalScale.z);
             }
         }
         
-        private void Slide()
+        /// <summary>
+        /// Reset nhân vật về trạng thái ban đầu
+        /// </summary>
+        public void ResetPlayer()
         {
-            if (!IsAlive || !IsGrounded || IsSliding) return;
+            IsAlive = true;
+            horizontalInput = 0f;
             
-            if (slideCoroutine != null)
+            // Reset velocity
+            if (rb != null)
             {
-                StopCoroutine(slideCoroutine);
+                rb.linearVelocity = Vector2.zero;
             }
             
-            slideCoroutine = StartCoroutine(SlideCoroutine());
+            // Reset facing direction
+            facingRight = true;
+            transform.localScale = originalScale;
+            
+            // Reset position to safe location
+            Vector3 resetPos = new Vector3(0f, 2f, transform.position.z); // Đặt ở Y = 2 thay vì giữ nguyên Y hiện tại
+            transform.position = resetPos;
+            
+            Debug.Log($"Player reset to position: {resetPos}");
         }
+        
+        /// <summary>
+        /// Vẽ gizmos để debug
+        /// </summary>
+        private void OnDrawGizmos()
+        {
+            // Vẽ ground check
+            if (groundCheck != null)
+            {
+                Gizmos.color = IsGrounded ? Color.green : Color.red;
+                Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+                
+                // Vẽ thêm line để thấy rõ hơn
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawLine(transform.position, groundCheck.position);
+            }
+            else
+            {
+                // Vẽ raycast fallback
+                Gizmos.color = IsGrounded ? Color.green : Color.red;
+                Vector3 rayStart = new Vector3(transform.position.x, transform.position.y - 0.1f, transform.position.z);
+                Vector3 rayEnd = rayStart + Vector3.down * 0.6f;
+                Gizmos.DrawLine(rayStart, rayEnd);
+                
+                // Vẽ điểm bắt đầu ray
+                Gizmos.color = Color.blue;
+                Gizmos.DrawWireSphere(rayStart, 0.05f);
+            }
+            
+            // Vẽ velocity vector để debug chuyển động
+            if (Application.isPlaying && rb != null)
+            {
+                Gizmos.color = Color.magenta;
+                Vector3 velocityEnd = transform.position + new Vector3(rb.linearVelocity.x, rb.linearVelocity.y, 0) * 0.1f;
+                Gizmos.DrawLine(transform.position, velocityEnd);
+            }
+        }
+        
+        #region Public Methods for External Control
+        
+        /// <summary>
+        /// Di chuyển trái (có thể gọi từ UI hoặc touch input)
+        /// </summary>
+        public void MoveLeft()
+        {
+            if (IsAlive) horizontalInput = -1f;
+        }
+        
+        /// <summary>
+        /// Di chuyển phải (có thể gọi từ UI hoặc touch input)
+        /// </summary>
+        public void MoveRight()
+        {
+            if (IsAlive) horizontalInput = 1f;
+        }
+        
+        /// <summary>
+        /// Dừng di chuyển (có thể gọi từ UI hoặc touch input)
+        /// </summary>
+        public void StopMovement()
+        {
+            horizontalInput = 0f;
+        }
+        
+        /// <summary>
+        /// Nhảy (có thể gọi từ UI hoặc touch input)
+        /// </summary>
+        public void JumpAction()
+        {
+            if (IsAlive && IsGrounded)
+            {
+                Jump();
+            }
+        }
+        
+
         
         #endregion
-        
-        private IEnumerator SlideCoroutine()
+
+        #region Missing Methods - Các hàm mà scripts khác đang tìm kiếm
+
+        /// <summary>
+        /// Giết nhân vật
+        /// </summary>
+        public void Die()
         {
-            IsSliding = true;
-            
-            // Lower the collider
-            Vector3 originalScale = col.transform.localScale;
-            col.transform.localScale = new Vector3(originalScale.x, slideHeight, originalScale.z);
-            
-            // Trigger slide animation
-            if (catAnimator != null)
+            if (!IsAlive) return;
+
+            IsAlive = false;
+
+            // Dừng chuyển động
+            if (rb != null)
             {
-                catAnimator.TriggerSlide();
+                rb.linearVelocity = Vector2.zero;
             }
-            
-            yield return new WaitForSeconds(slideDuration);
-            
-            // Restore collider
-            col.transform.localScale = originalScale;
-            IsSliding = false;
-            slideCoroutine = null;
+
+            // Gọi event OnDeath
+            OnDeath?.Invoke();
         }
         
-        #region Collision Detection
+        /// <summary>
+        /// Xử lý thu thập coin
+        /// </summary>
+        /// <param name="coinValue">Giá trị của coin</param>
+        public void CollectCoin(int coinValue = 10)
+        {
+            if (!IsAlive) return;
+            
+            // Gọi event OnCoinCollected
+            OnCoinCollected?.Invoke(coinValue);
+        }
         
+        /// <summary>
+        /// Xử lý thu thập power-up
+        /// </summary>
+        /// <param name="powerUpType">Loại power-up</param>
+        public void CollectPowerUp(string powerUpType)
+        {
+            if (!IsAlive) return;
+            
+            // Gọi event OnPowerUpCollected
+            OnPowerUpCollected?.Invoke(powerUpType);
+        }
+        
+        /// <summary>
+        /// Xử lý va chạm với trigger
+        /// </summary>
+        /// <param name="other">Collider va chạm</param>
         private void OnTriggerEnter2D(Collider2D other)
         {
             if (!IsAlive) return;
             
             switch (other.tag)
             {
-                case "Obstacle":
-                    HandleObstacleCollision();
-                    break;
-                    
-                case "Catcher":
-                    HandleCatcherCollision();
-                    break;
-                    
                 case "Coin":
-                    HandleCoinCollection(other);
+                    CollectCoin(10);
+                    Destroy(other.gameObject);
                     break;
                     
                 case "PowerUp":
-                    HandlePowerUpCollection(other);
-                    break;
-            }
-        }
-        
-        private void HandleObstacleCollision()
-        {
-            // Check if can jump over with rocket shoes
-            if (hasRocketShoes && !IsGrounded)
-            {
-                return; // Player jumped over the obstacle
-            }
-            
-            Die();
-        }
-        
-        private void HandleCatcherCollision()
-        {
-            Die();
-        }
-        
-        private void HandleCoinCollection(Collider2D coinCollider)
-        {
-            // For now, use default coin value until FishCoin is created
-            int coinValue = 10; // default value
-            OnCoinCollected?.Invoke(coinValue);
-            
-            // Destroy the coin object
-            Destroy(coinCollider.gameObject);
-        }
-        
-        private void HandlePowerUpCollection(Collider2D powerUpCollider)
-        {
-            // For now, handle power-ups by tag until PowerUpBase is created
-            string powerUpType = powerUpCollider.name; // or use a custom component
-            OnPowerUpCollected?.Invoke(powerUpType);
-            
-            // Destroy the power-up object
-            Destroy(powerUpCollider.gameObject);
-            
-            // Apply power-up effects
-            ApplyPowerUp(powerUpType);
-        }
-        
-        #endregion
-        
-        #region Power-Up System
-        
-        private void ApplyPowerUp(string powerUpType)
-        {
-            switch (powerUpType)
-            {
-                case "RocketShoes":
-                    StartCoroutine(RocketShoesPowerUp());
+                    CollectPowerUp(other.name);
+                    Destroy(other.gameObject);
                     break;
                     
-                case "Magnet":
-                    StartCoroutine(MagnetPowerUp());
+                case "Obstacle":
+                case "Enemy":
+                case "Catcher":
+                    Die();
                     break;
             }
         }
         
-        private IEnumerator RocketShoesPowerUp()
-        {
-            hasRocketShoes = true;
-            yield return new WaitForSeconds(10f); // 10 seconds duration
-            hasRocketShoes = false;
-        }
-        
-        private IEnumerator MagnetPowerUp()
-        {
-            // Enable coin magnet effect
-            // This would be handled by a separate magnet script
-            yield return new WaitForSeconds(8f); // 8 seconds duration
-        }
-        
-        #endregion
-        
-        private void Die()
+        /// <summary>
+        /// Xử lý va chạm với collider
+        /// </summary>
+        /// <param name="collision">Collision data</param>
+        private void OnCollisionEnter2D(Collision2D collision)
         {
             if (!IsAlive) return;
             
-            IsAlive = false;
-            rb.linearVelocity = Vector2.zero;
-            
-            if (catAnimator != null)
+            switch (collision.gameObject.tag)
             {
-                catAnimator.TriggerHit();
-            }
-            
-            OnDeath?.Invoke();
-        }
-        
-        // Public methods for external access
-        public void ResetPlayer()
-        {
-            IsAlive = true;
-            currentLane = 1;
-            targetPosition = new Vector3(lanePositions[currentLane], transform.position.y, transform.position.z);
-            transform.position = targetPosition;
-            IsSliding = false;
-            IsMovingBetweenLanes = false;
-            hasRocketShoes = false;
-            
-            if (slideCoroutine != null)
-            {
-                StopCoroutine(slideCoroutine);
-                slideCoroutine = null;
+                case "Obstacle":
+                case "Enemy":
+                case "Catcher":
+                    Die();
+                    break;
             }
         }
         
-        private void OnDrawGizmos()
-        {
-            // Draw lane positions
-            Gizmos.color = Color.green;
-            for (int i = 0; i < lanePositions.Length; i++)
-            {
-                Vector3 lanePos = new Vector3(lanePositions[i], transform.position.y, transform.position.z);
-                Gizmos.DrawWireCube(lanePos, Vector3.one * 0.5f);
-            }
-            
-            // Draw ground check
-            if (groundCheck != null)
-            {
-                Gizmos.color = IsGrounded ? Color.green : Color.red;
-                Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
-            }
-        }
-        
-        private void OnDestroy()
-        {
-            // Cleanup events
-            if (input != null)
-            {
-                input.OnSwipeLeft -= MoveLeft;
-                input.OnSwipeRight -= MoveRight;
-                input.OnSwipeUp -= Jump;
-                input.OnSwipeDown -= Slide;
-            }
-        }
+        #endregion
     }
 }
