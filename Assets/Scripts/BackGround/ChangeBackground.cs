@@ -1,27 +1,55 @@
 using UnityEngine;
 
+
+// Sử dụng lại enum GameStage đã khai báo ở file khác
+
 public class BackgroundSpriteChanger : MonoBehaviour
 {
     public SpriteRenderer backgroundRenderer;
-    public Sprite[] backgroundSprites;
-    private int currentIndex = 0;
-    
-    public void ChangeBackground()
+    public Sprite[] stageBackgrounds; // 0: Dust, 1: Day, 2: Dawn
+    public float[] stageTimes = { 0f, 10f, 20f }; // Thời điểm chuyển stage (giây)
+    private GameStage currentStage = GameStage.Dust;
+    private float timer = 0f;
+
+    void Start()
     {
-        currentIndex = (currentIndex + 1) % backgroundSprites.Length;
-        backgroundRenderer.sprite = backgroundSprites[currentIndex];
+        UpdateBackground();
     }
-    
-    // Smooth transition
-    public void ChangeBackgroundSmooth(float duration = 1f)
+
+    void Update()
     {
-        StartCoroutine(SmoothTransition(duration));
+        timer += Time.deltaTime;
+        CheckStageByTime(timer);
     }
-    
+
+    void CheckStageByTime(float time)
+    {
+        if (time < stageTimes[1])
+            SetStage(GameStage.Dust);
+        else if (time < stageTimes[2])
+            SetStage(GameStage.Day);
+        else
+            SetStage(GameStage.Dawn);
+    }
+
+    public void SetStage(GameStage stage)
+    {
+        if (currentStage != stage)
+        {
+            currentStage = stage;
+            StartCoroutine(SmoothTransition(1f));
+        }
+    }
+
+    void UpdateBackground()
+    {
+        backgroundRenderer.sprite = stageBackgrounds[(int)currentStage];
+    }
+
     private System.Collections.IEnumerator SmoothTransition(float duration)
     {
         Color startColor = backgroundRenderer.color;
-        
+
         // Fade out
         for (float t = 0; t < duration/2; t += Time.deltaTime)
         {
@@ -29,11 +57,10 @@ public class BackgroundSpriteChanger : MonoBehaviour
             backgroundRenderer.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
             yield return null;
         }
-        
+
         // Change sprite
-        currentIndex = (currentIndex + 1) % backgroundSprites.Length;
-        backgroundRenderer.sprite = backgroundSprites[currentIndex];
-        
+        UpdateBackground();
+
         // Fade in
         for (float t = 0; t < duration/2; t += Time.deltaTime)
         {
@@ -41,7 +68,7 @@ public class BackgroundSpriteChanger : MonoBehaviour
             backgroundRenderer.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
             yield return null;
         }
-        
+
         backgroundRenderer.color = startColor;
     }
 }
