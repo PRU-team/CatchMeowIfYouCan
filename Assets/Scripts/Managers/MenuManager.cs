@@ -17,4 +17,8 @@ public class MenuManager : MonoBehaviour
     {
         instructionPanel.SetActive(!instructionPanel.activeSelf);
     }
+    public void Quit()
+    {
+       Application.Quit(); 
+    }
 }
