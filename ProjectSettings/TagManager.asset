@@ -13,10 +13,10 @@ TagManager:
   - Ground
   - Water
   - UI
-  - Player
+  - Buildings
   - Obstacles
   - Collectibles
-  - PowerUps
+  - Player
   - Catcher
   - UI
   - 
@@ -46,6 +46,9 @@ TagManager:
   - name: Background
     uniqueID: 1107252767
     locked: 0
+  - name: Road
+    uniqueID: 926075457
+    locked: 0
   - name: Ground
     uniqueID: 2148684229
     locked: 0
@@ -61,8 +64,11 @@ TagManager:
   - name: PowerUps
     uniqueID: 720485917
     locked: 0
-  - name: Catcher
+  - name: Building
     uniqueID: 2943897301
+    locked: 0
+  - name: Catcher
+    uniqueID: 431271789
     locked: 0
   m_RenderingLayers:
   - Default

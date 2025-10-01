@@ -59,6 +59,25 @@ namespace CatchMeowIfYouCan.Environment
     ///    - Đặt lockBackground = true và lockCamera = true
     ///    - Điều chỉnh playerBoundaryX để giới hạn player trong màn hình
     ///    - Background sẽ đứng yên, camera cố định, ground di chuyển tạo hiệu ứng
+    /// 
+    /// BUILDING SPAWNER SETUP (Tùy chọn - Đã cải tiến):
+    /// 8. SETUP BUILDING SPAWNER (Buildings bám theo ground):
+    ///    - Buildings sẽ trở thành child của ground pieces → di chuyển cùng ground
+    ///    - Tự động scale buildings cho phù hợp với camera view
+    ///    - Sửa vấn đề buildings di chuyển ngược hướng
+    ///    
+    ///    Setup steps:
+    ///    - Tạo prefabs từ building assets
+    ///    - Tạo empty GameObject tên "BuildingSpawner"  
+    ///    - Gắn BuildingSpawner script mới
+    ///    - Assign building prefabs vào buildingPrefabs array
+    ///    - Assign GroundSpawner và Camera references
+    ///    - Bật attachToGround = true (buildings bám theo ground)
+    ///    - Bật autoScale = true (tự động scale theo camera)
+    ///    - Điều chỉnh targetBuildingHeight cho phù hợp
+    ///    - Đặt Ground tag hoặc đúng groundLayerMask
+    ///    
+    ///    Kết quả: Buildings spawn trên ground, di chuyển cùng ground, scale tự động
     /// </summary>
     public class EndlessRunSetupGuide : MonoBehaviour
     {
@@ -71,6 +90,7 @@ namespace CatchMeowIfYouCan.Environment
         [SerializeField] private GroundSpawner groundSpawner;
         [SerializeField] private EndlessRunManager endlessRunManager;
         [SerializeField] private FixedBackgroundManager fixedBackgroundManager;
+        [SerializeField] private BuildingSpawner buildingSpawner;
         [SerializeField] private Camera mainCamera;
         
         private void Start()
@@ -165,6 +185,21 @@ namespace CatchMeowIfYouCan.Environment
                 Debug.LogWarning("⚠ FixedBackgroundManager not found (background will follow camera)");
             }
             
+            // Check Building Spawner
+            if (buildingSpawner == null)
+            {
+                buildingSpawner = FindFirstObjectByType<BuildingSpawner>();
+            }
+            
+            if (buildingSpawner != null)
+            {
+                Debug.Log("✓ BuildingSpawner found: " + buildingSpawner.name + " (Buildings will spawn randomly)");
+            }
+            else
+            {
+                Debug.LogWarning("⚠ BuildingSpawner not found (no building spawning)");
+            }
+            
             // Check Camera
             if (mainCamera == null)
             {
@@ -196,6 +231,7 @@ namespace CatchMeowIfYouCan.Environment
             groundSpawner = FindFirstObjectByType<GroundSpawner>();
             endlessRunManager = FindFirstObjectByType<EndlessRunManager>();
             fixedBackgroundManager = FindFirstObjectByType<FixedBackgroundManager>();
+            buildingSpawner = FindFirstObjectByType<BuildingSpawner>();
             mainCamera = Camera.main;
             
             Debug.Log("Auto setup complete! Check the assigned references.");

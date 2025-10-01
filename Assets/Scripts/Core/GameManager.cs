@@ -37,7 +37,7 @@ namespace CatchMeowIfYouCan.Core
         private ScoreManager scoreManager;
         private AudioManager audioManager;
         private CatchMeowIfYouCan.Player.CatController player;
-        private CatchMeowIfYouCan.Catcher.CatcherController catcher;
+        private CatchMeowIfYouCan.Enemies.CatcherManager catcherManager;
         
         // Progression tracking
         private float lastSpeedIncreaseTime;
@@ -119,8 +119,8 @@ namespace CatchMeowIfYouCan.Core
         private void FindComponents()
         {
             // Find core managers
-            scoreManager = FindObjectOfType<ScoreManager>();
-            audioManager = FindObjectOfType<AudioManager>();
+            scoreManager = FindFirstObjectByType<ScoreManager>();
+            audioManager = FindFirstObjectByType<AudioManager>();
             
             // Find game objects
             GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
@@ -129,11 +129,8 @@ namespace CatchMeowIfYouCan.Core
                 player = playerObj.GetComponent<CatchMeowIfYouCan.Player.CatController>();
             }
             
-            GameObject catcherObj = GameObject.FindGameObjectWithTag("Catcher");
-            if (catcherObj != null)
-            {
-                catcher = catcherObj.GetComponent<CatchMeowIfYouCan.Catcher.CatcherController>();
-            }
+            // Find CatcherManager
+            catcherManager = FindFirstObjectByType<CatchMeowIfYouCan.Enemies.CatcherManager>();
         }
         
         private void SetupEventListeners()
@@ -147,9 +144,9 @@ namespace CatchMeowIfYouCan.Core
             }
             
             // Listen to catcher events
-            if (catcher != null)
+            if (catcherManager != null)
             {
-                catcher.OnPlayerCaught += HandlePlayerCaught;
+                catcherManager.OnAnyCatCaught += HandlePlayerCaught;
             }
         }
         
@@ -226,9 +223,9 @@ namespace CatchMeowIfYouCan.Core
                 player.ResetPlayer();
             }
             
-            if (catcher != null)
+            if (catcherManager != null)
             {
-                catcher.ResetCatcher();
+                catcherManager.ResetAllCatchers();
             }
             
             // Play start sound
@@ -297,9 +294,9 @@ namespace CatchMeowIfYouCan.Core
                 // This will be handled by the player's IsAlive state
             }
             
-            if (catcher != null)
+            if (catcherManager != null)
             {
-                catcher.SetActive(false);
+                catcherManager.ResetAllCatchers();
             }
             
             // Play game over sound
@@ -375,11 +372,8 @@ namespace CatchMeowIfYouCan.Core
                 CurrentGameSpeed += speedIncreaseAmount;
                 OnGameSpeedChanged?.Invoke(CurrentGameSpeed);
                 
-                // Notify catcher to increase speed
-                if (catcher != null)
-                {
-                    catcher.IncreaseBaseSpeed(speedIncreaseAmount);
-                }
+                // Speed increase handled by individual systems
+                // CatcherManager will adapt to game speed automatically
                 
                 Debug.Log($"Game speed increased to: {CurrentGameSpeed:F1}");
             }
@@ -405,7 +399,7 @@ namespace CatchMeowIfYouCan.Core
             }
         }
         
-        private void HandlePlayerCaught()
+        private void HandlePlayerCaught(CatchMeowIfYouCan.Enemies.CatcherController catcher)
         {
             // Same as player death
             HandlePlayerDeath();
@@ -441,9 +435,9 @@ namespace CatchMeowIfYouCan.Core
                 player.ResetPlayer();
             }
             
-            if (catcher != null)
+            if (catcherManager != null)
             {
-                catcher.ResetCatcher();
+                catcherManager.ResetAllCatchers();
             }
         }
         
@@ -559,9 +553,9 @@ namespace CatchMeowIfYouCan.Core
                 player.OnPowerUpCollected -= HandlePowerUpCollected;
             }
             
-            if (catcher != null)
+            if (catcherManager != null)
             {
-                catcher.OnPlayerCaught -= HandlePlayerCaught;
+                catcherManager.OnAnyCatCaught -= HandlePlayerCaught;
             }
         }
         

@@ -17,12 +17,20 @@ namespace CatchMeowIfYouCan.Environment
         [SerializeField] private Camera gameCamera;
         [SerializeField] private bool lockCamera = true;
         [SerializeField] private Vector3 fixedCameraPosition = new Vector3(0, 0, -10);
-        [SerializeField] private bool keepPlayerInView = true;
-        [SerializeField] private float playerBoundaryX = 8f;
+        [SerializeField] private bool keepPlayerInView = false; // TẮT để mèo có thể trôi ra ngoài màn hình để trigger catcher
+        [SerializeField] private float playerBoundaryX = 30f; // Tăng giới hạn rất lớn để không cản trở catcher system
         
         [Header("Player Management")]
         [SerializeField] private Transform player;
         [SerializeField] private float resetPlayerX = 0f;
+        [SerializeField] private bool usePhysicsBoundaries = true; // Sử dụng physics thay vì hard reset
+        [SerializeField] private float boundaryForceMultiplier = 15f; // Tăng lực cho survival mode
+        [SerializeField] private float maxBoundaryDrag = 10f; // Tăng drag tối đa cho survival
+        [SerializeField] private float normalDrag = 2f; // Drag bình thường phù hợp với survival
+        [SerializeField] private float leftBoundaryAssist = 0.5f; // Hỗ trợ khi trôi về trái quá xa
+        
+        [Header("Debug")]
+        [SerializeField] private bool enableDebugLogs = false;
         
         // Components
         private CatchMeowIfYouCan.Player.CatController catController;
@@ -130,10 +138,11 @@ namespace CatchMeowIfYouCan.Environment
             
             EnforceFixedPositions();
             
-            if (keepPlayerInView)
-            {
-                ManagePlayerBoundary();
-            }
+            // DISABLED: Tắt hoàn toàn boundary management để mèo trôi tự do đến catcher
+            // if (keepPlayerInView)
+            // {
+            //     ManagePlayerBoundary();
+            // }
         }
         
         /// <summary>
@@ -161,32 +170,100 @@ namespace CatchMeowIfYouCan.Environment
         }
         
         /// <summary>
-        /// Quản lý player trong giới hạn màn hình
+        /// Quản lý player trong giới hạn màn hình với physics thay vì hard reset
+        /// DISABLED - để mèo có thể trôi ra ngoài màn hình để trigger catcher system
         /// </summary>
         private void ManagePlayerBoundary()
         {
-            if (player == null) return;
+            if (player == null || !keepPlayerInView) return; // TẮT boundary management để mèo trôi tự do
             
             float playerX = player.position.x;
+            Rigidbody2D playerRb = player.GetComponent<Rigidbody2D>();
             
-            // Nếu player đi quá xa về phía phải, reset về vị trí trung tâm
-            if (playerX > playerBoundaryX)
+            // Kiểm tra input của player để tránh can thiệp vào control
+            bool playerMovingLeft = Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow);
+            bool playerMovingRight = Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow);
+            
+            if (usePhysicsBoundaries)
             {
-                Vector3 newPos = player.position;
-                newPos.x = resetPlayerX;
-                player.position = newPos;
-                
-                Debug.Log("Player reset to X: " + resetPlayerX + " (was at X: " + playerX + ")");
+                // Sử dụng physics để hạn chế thay vì hard reset
+                if (playerX > playerBoundaryX)
+                {
+                    // CHỈ áp dụng boundary force nếu player KHÔNG đang cố gắng đi về trái
+                    if (!playerMovingLeft && playerRb != null)
+                    {
+                        float pushForce = (playerX - playerBoundaryX) * boundaryForceMultiplier;
+                        Vector2 currentVel = playerRb.linearVelocity;
+                        
+                        // Chỉ áp dụng force về trái, không can thiệp vào Y velocity
+                        float targetVelX = Mathf.Min(currentVel.x, -pushForce);
+                        playerRb.linearVelocity = new Vector2(targetVelX, currentVel.y);
+                        
+                        // Tăng drag nhẹ để giảm tốc độ về phải
+                        playerRb.linearDamping = Mathf.Lerp(playerRb.linearDamping, maxBoundaryDrag * 0.5f, Time.deltaTime * 2f);
+                    }
+                    
+                    if (enableDebugLogs)
+                        Debug.Log($"Player beyond right boundary ({playerX:F2} > {playerBoundaryX}), playerMovingLeft: {playerMovingLeft}");
+                }
+                else if (playerX < -playerBoundaryX)
+                {
+                    // Player trôi quá xa về trái - cung cấp assist force để giúp quay lại
+                    if (!playerMovingRight && playerRb != null)
+                    {
+                        float assistForce = (-playerBoundaryX - playerX) * boundaryForceMultiplier * leftBoundaryAssist;
+                        Vector2 currentVel = playerRb.linearVelocity;
+                        
+                        // Gentle assist force để không làm game quá dễ
+                        float targetVelX = Mathf.Max(currentVel.x, assistForce);
+                        playerRb.linearVelocity = new Vector2(targetVelX, currentVel.y);
+                        
+                        // Tăng drag để player biết đang ở vùng nguy hiểm
+                        playerRb.linearDamping = Mathf.Lerp(playerRb.linearDamping, maxBoundaryDrag * 0.7f, Time.deltaTime * 2f);
+                    }
+                    
+                    if (enableDebugLogs)
+                        Debug.Log($"Player drifted too far left ({playerX:F2} < {-playerBoundaryX}), providing gentle assist");
+                }
+                else
+                {
+                    // Trong giới hạn bình thường, giảm drag về mức bình thường
+                    if (playerRb != null)
+                    {
+                        playerRb.linearDamping = Mathf.Lerp(playerRb.linearDamping, normalDrag, Time.deltaTime * 3f);
+                    }
+                }
             }
-            
-            // Nếu player đi quá xa về phía trái, cũng reset
-            if (playerX < -playerBoundaryX)
+            else
             {
-                Vector3 newPos = player.position;
-                newPos.x = resetPlayerX;
-                player.position = newPos;
+                // Fallback: Hard reset (old behavior) - chỉ khi player không đang control
+                if (playerX > playerBoundaryX && !playerMovingLeft)
+                {
+                    Vector3 newPos = player.position;
+                    newPos.x = resetPlayerX;
+                    player.position = newPos;
+                    
+                    if (playerRb != null)
+                    {
+                        playerRb.linearVelocity = new Vector2(0, playerRb.linearVelocity.y);
+                    }
+                    
+                    Debug.Log("Player reset to X: " + resetPlayerX + " (was at X: " + playerX + ")");
+                }
                 
-                Debug.Log("Player reset to X: " + resetPlayerX + " (was at X: " + playerX + ")");
+                if (playerX < -playerBoundaryX && !playerMovingRight)
+                {
+                    Vector3 newPos = player.position;
+                    newPos.x = resetPlayerX;
+                    player.position = newPos;
+                    
+                    if (playerRb != null)
+                    {
+                        playerRb.linearVelocity = new Vector2(0, playerRb.linearVelocity.y);
+                    }
+                    
+                    Debug.Log("Player reset to X: " + resetPlayerX + " (was at X: " + playerX + ")");
+                }
             }
         }
         
@@ -278,6 +355,119 @@ namespace CatchMeowIfYouCan.Environment
             }
             
             Debug.Log("FixedBackgroundManager reset to original state");
+        }
+        
+        /// <summary>
+        /// Toggle giữa physics boundaries và hard reset
+        /// </summary>
+        [ContextMenu("Toggle Physics Boundaries")]
+        public void TogglePhysicsBoundaries()
+        {
+            usePhysicsBoundaries = !usePhysicsBoundaries;
+            Debug.Log($"Physics Boundaries: {(usePhysicsBoundaries ? "ENABLED" : "DISABLED")}");
+            
+            // Reset player drag về bình thường khi thay đổi mode
+            if (player != null)
+            {
+                Rigidbody2D playerRb = player.GetComponent<Rigidbody2D>();
+                if (playerRb != null)
+                {
+                    playerRb.linearDamping = normalDrag;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Debug player boundary status
+        /// </summary>
+        [ContextMenu("Debug Player Boundary")]
+        public void DebugPlayerBoundary()
+        {
+            if (player == null)
+            {
+                Debug.LogError("No player assigned!");
+                return;
+            }
+            
+            Debug.Log("=== PLAYER BOUNDARY DEBUG ===");
+            Debug.Log($"Player Position: {player.position}");
+            Debug.Log($"Boundary X: ±{playerBoundaryX}");
+            Debug.Log($"Reset Position X: {resetPlayerX}");
+            Debug.Log($"Use Physics Boundaries: {usePhysicsBoundaries}");
+            
+            Rigidbody2D playerRb = player.GetComponent<Rigidbody2D>();
+            if (playerRb != null)
+            {
+                Debug.Log($"Player Velocity: {playerRb.linearVelocity}");
+                Debug.Log($"Player Drag: {playerRb.linearDamping}");
+                Debug.Log($"Normal Drag: {normalDrag}, Max Boundary Drag: {maxBoundaryDrag}");
+            }
+            
+            float playerX = player.position.x;
+            if (playerX > playerBoundaryX)
+            {
+                Debug.LogWarning($"Player is beyond RIGHT boundary ({playerX:F2} > {playerBoundaryX})");
+            }
+            else if (playerX < -playerBoundaryX)
+            {
+                Debug.LogWarning($"Player is beyond LEFT boundary ({playerX:F2} < {-playerBoundaryX})");
+            }
+            else
+            {
+                Debug.Log("Player is within boundaries ✓");
+            }
+        }
+        
+        /// <summary>
+        /// Test physics boundary force
+        /// </summary>
+        [ContextMenu("Test Boundary Force")]
+        public void TestBoundaryForce()
+        {
+            if (player == null)
+            {
+                Debug.LogError("No player assigned!");
+                return;
+            }
+            
+            Debug.Log("=== TESTING BOUNDARY FORCE ===");
+            
+            // Đặt player ở vị trí xa để test boundary force
+            Vector3 testPos = player.position;
+            testPos.x = playerBoundaryX + 2f; // Vượt boundary 2 units
+            player.position = testPos;
+            
+            Debug.Log($"Moved player to test position: {testPos}");
+            Debug.Log("Boundary force should be applied automatically in next Update cycle");
+        }
+        
+        /// <summary>
+        /// Test survival mode compatibility
+        /// </summary>
+        [ContextMenu("Test Survival Mode Compatibility")]
+        public void TestSurvivalModeCompatibility()
+        {
+            var catController = player?.GetComponent<CatchMeowIfYouCan.Player.CatController>();
+            if (catController == null)
+            {
+                Debug.LogError("No CatController found on player!");
+                return;
+            }
+            
+            Debug.Log("=== SURVIVAL MODE COMPATIBILITY TEST ===");
+            Debug.Log($"Current boundary settings optimized for backward drift survival mode:");
+            Debug.Log($"  - Boundary Force Multiplier: {boundaryForceMultiplier}");
+            Debug.Log($"  - Max Boundary Drag: {maxBoundaryDrag}");
+            Debug.Log($"  - Normal Drag: {normalDrag}");
+            Debug.Log($"  - Left Boundary Assist: {leftBoundaryAssist}");
+            Debug.Log("");
+            Debug.Log("Backward Drift Survival Mechanics:");
+            Debug.Log("  - Cat naturally drifts backward (leftward) constantly");
+            Debug.Log("  - Player must hold D to move right and fight drift");
+            Debug.Log("  - No input = backward drift force causes leftward movement");
+            Debug.Log("  - Left boundary provides gentle assist to prevent falling off");
+            Debug.Log("  - Right boundary prevents going too far ahead");
+            Debug.Log("  - High friction when not pressing D creates tension");
         }
         
         /// <summary>

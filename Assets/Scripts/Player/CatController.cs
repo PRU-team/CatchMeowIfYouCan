@@ -12,9 +12,13 @@ namespace CatchMeowIfYouCan.Player
         [SerializeField] private float moveSpeed = 8f;
         [SerializeField] private float jumpForce = 12f;
         
-        [Header("Endless Runner Settings")]
-        [SerializeField] private bool autoRun = true; // Tự động chạy về phải
-        [SerializeField] private float autoRunSpeed = 5f; // Tốc độ tự động chạy
+        [Header("Survival Mode Settings")]
+        [SerializeField] private bool enableSurvivalMode = true; // Yêu cầu giữ D để chống lại drift
+        [SerializeField] private float backwardDriftForce = 3f; // Lực kéo về phía sau
+        [SerializeField] private float worldDriftSpeed = 2f; // Tốc độ trôi theo thế giới khi không input
+        [SerializeField] private float baseFriction = 2f; // Ma sát cơ bản
+        [SerializeField] private float highFriction = 5f; // Ma sát cao khi không bấm D
+        [SerializeField] private bool autoRun = false; // Tắt auto run
         
         [Header("Ground Check")]
         [SerializeField] private Transform groundCheck;
@@ -24,6 +28,12 @@ namespace CatchMeowIfYouCan.Player
         [Header("Character Flipping")]
         [SerializeField] private bool facingRight = true;
         
+        [Header("Knockback Settings")]
+        [SerializeField] private float knockbackForce = 15f; // Lực đẩy khi chạm catcher
+        [SerializeField] private float knockbackUpwardForce = 5f; // Lực đẩy lên trên
+        [SerializeField] private float knockbackDuration = 0.3f; // Thời gian bị knockback
+        [SerializeField] private bool enableKnockbackDebug = true;
+        
         // Components
         private Rigidbody2D rb;
         private Vector3 originalScale;
@@ -32,6 +42,11 @@ namespace CatchMeowIfYouCan.Player
         // State
         public bool IsGrounded { get; private set; }
         public bool IsAlive { get; private set; } = true;
+        
+        // Knockback state
+        private bool isKnockedBack = false;
+        private float knockbackTimer = 0f;
+        private Vector2 knockbackVelocity = Vector2.zero;
         
         // Input
         private float horizontalInput;
@@ -109,6 +124,7 @@ namespace CatchMeowIfYouCan.Player
         {
             if (!IsAlive) return;
 
+            HandleKnockback(); // Handle knockback first
             HandleInput();
             HandleGroundCheck();
             HandleMovement();
@@ -204,10 +220,59 @@ namespace CatchMeowIfYouCan.Player
         }
         
         /// <summary>
-        /// Xử lý di chuyển ngang và lật nhân vật
+        /// Xử lý knockback khi bị catcher chạm
+        /// </summary>
+        private void HandleKnockback()
+        {
+            if (!isKnockedBack) return;
+            
+            knockbackTimer -= Time.deltaTime;
+            
+            if (knockbackTimer <= 0f)
+            {
+                // Kết thúc knockback
+                isKnockedBack = false;
+                knockbackVelocity = Vector2.zero;
+                
+                if (enableKnockbackDebug)
+                {
+                    Debug.Log("[CatController] 🔄 Knockback ended - player can move normally");
+                }
+            }
+            else
+            {
+                // Áp dụng knockback velocity
+                if (rb != null)
+                {
+                    // Giảm dần knockback theo thời gian
+                    float knockbackProgress = knockbackTimer / knockbackDuration;
+                    Vector2 currentKnockback = knockbackVelocity * knockbackProgress;
+                    
+                    rb.linearVelocity = new Vector2(currentKnockback.x, rb.linearVelocity.y + currentKnockback.y);
+                    
+                    if (enableKnockbackDebug && Time.frameCount % 30 == 0)
+                    {
+                        Debug.Log($"[CatController] Knockback active - Time left: {knockbackTimer:F2}s, Velocity: {currentKnockback}");
+                    }
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Xử lý di chuyển ngang với backward drift survival mechanics
         /// </summary>
         private void HandleMovement()
         {
+            // Không di chuyển nếu đang bị knockback
+            if (isKnockedBack)
+            {
+                if (enableKnockbackDebug && Time.frameCount % 60 == 0)
+                {
+                    Debug.Log("[CatController] Movement disabled during knockback");
+                }
+                return;
+            }
+            
             // Kiểm tra Rigidbody2D constraints
             if (rb == null)
             {
@@ -222,44 +287,100 @@ namespace CatchMeowIfYouCan.Player
                 rb.constraints = RigidbodyConstraints2D.FreezeRotation; // Chỉ freeze rotation
             }
             
-            // Di chuyển ngang
+            // FORCE CLEAR: Đảm bảo không có constraints nào khác
+            if (rb.constraints != RigidbodyConstraints2D.FreezeRotation)
+            {
+                Debug.LogWarning($"Clearing unexpected constraints: {rb.constraints}");
+                rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+            }
+            
+            // Di chuyển ngang với survival mechanics
             Vector2 velocity = rb.linearVelocity;
             Vector2 oldVelocity = velocity;
             
-            // Kiểm tra xem có FixedBackgroundManager không
-            var fixedBgManager = FindFirstObjectByType<CatchMeowIfYouCan.Environment.FixedBackgroundManager>();
-            bool hasFixedBackground = fixedBgManager != null;
+            // Kiểm tra input states
+            bool movingRight = horizontalInput > 0;
+            bool movingLeft = horizontalInput < 0;
+            bool noInput = horizontalInput == 0;
             
-            // Auto run logic
-            float totalHorizontalInput = horizontalInput;
-            if (autoRun && IsAlive)
+            if (enableSurvivalMode && IsAlive)
             {
-                if (hasFixedBackground)
+                // SURVIVAL MODE: Mèo trôi theo thế giới + backward drift
+                if (movingRight)
                 {
-                    // Với fixed background, player chạy tại chỗ với tốc độ thấp hơn
-                    velocity.x = horizontalInput * moveSpeed + (autoRunSpeed * 0.3f);
+                    // Player đang cố gắng chạy về phải - chống lại world drift và backward drift
+                    velocity.x = horizontalInput * moveSpeed;
+                    rb.linearDamping = Mathf.Lerp(rb.linearDamping, baseFriction, Time.deltaTime * 3f);
+                }
+                else if (movingLeft)
+                {
+                    // Player đang chạy về trái - cho phép nhưng với friction cao hơn
+                    velocity.x = horizontalInput * moveSpeed;
+                    rb.linearDamping = Mathf.Lerp(rb.linearDamping, baseFriction * 1.5f, Time.deltaTime * 3f);
                 }
                 else
                 {
-                    // Không có fixed background, player di chuyển bình thường
-                    totalHorizontalInput += 1f; // Luôn di chuyển về phải
-                    velocity.x = totalHorizontalInput * moveSpeed + autoRunSpeed;
+                    // Không có input - mèo trôi theo thế giới + backward drift force
+                    
+                    // Kiểm tra xem có FixedBackgroundManager không để biết ground có di chuyển không
+                    var fixedBgManager = FindFirstObjectByType<CatchMeowIfYouCan.Environment.FixedBackgroundManager>();
+                    bool hasFixedBackground = fixedBgManager != null;
+                    
+                    if (hasFixedBackground)
+                    {
+                        // Với fixed background: ground di chuyển, mèo cần trôi cùng + backward drift
+                        velocity.x = -worldDriftSpeed - backwardDriftForce;
+                    }
+                    else
+                    {
+                        // Không có fixed background: chỉ backward drift
+                        float currentVelX = velocity.x;
+                        velocity.x = currentVelX - (backwardDriftForce * Time.deltaTime);
+                    }
+                    
+                    // Tăng friction để tạo cảm giác "bị kéo lùi"
+                    rb.linearDamping = Mathf.Lerp(rb.linearDamping, highFriction, Time.deltaTime * 3f);
+                    
+                    // REMOVED: Giới hạn tốc độ drift - này ngăn mèo trôi đến boundary để trigger catcher
+                    // velocity.x = Mathf.Max(velocity.x, -moveSpeed * 0.8f);
                 }
             }
             else
             {
+                // Normal movement mode (không survival)
                 velocity.x = horizontalInput * moveSpeed;
+                rb.linearDamping = baseFriction;
             }
             
             rb.linearVelocity = velocity;
             
-            // Debug movement
-            if (horizontalInput != 0 || autoRun)
+            // Debug movement với thông tin về world drift
+            if (horizontalInput != 0 || enableSurvivalMode)
             {
-                Debug.Log($"Movement - Input: {horizontalInput}, AutoRun: {autoRun}, FixedBG: {hasFixedBackground}, TotalInput: {totalHorizontalInput}, OldVel: {oldVelocity.x}, NewVel: {velocity.x}, Position: {transform.position.x}");
+                string survivalInfo = "";
+                if (enableSurvivalMode)
+                {
+                    var fixedBgManager = FindFirstObjectByType<CatchMeowIfYouCan.Environment.FixedBackgroundManager>();
+                    bool hasFixedBackground = fixedBgManager != null;
+                    
+                    string inputState = movingRight ? "FIGHTING DRIFT" : (movingLeft ? "LEFT" : "WORLD DRIFT");
+                    string driftInfo = noInput ? $"WorldDrift: {worldDriftSpeed:F1}, BackDrift: {backwardDriftForce:F1}" : "";
+                    survivalInfo = $"Survival: {enableSurvivalMode}, State: {inputState}, FixedBG: {hasFixedBackground}, {driftInfo}, Friction: {rb.linearDamping:F1}";
+                }
+                
+                // ENHANCED DEBUG: Thêm thông tin về position và boundary checking  
+                string boundaryInfo = $"Pos: {transform.position.x:F1}, Vel: {velocity.x:F1}";
+                if (velocity.x < -3f)
+                {
+                    Debug.LogWarning($"DRIFTING LEFT FAST! {boundaryInfo}, {survivalInfo}");
+                }
+                else
+                {
+                    Debug.Log($"Movement - Input: {horizontalInput:F1}, {survivalInfo}, {boundaryInfo}");
+                }
             }
             
-            // Lật nhân vật theo hướng di chuyển manual (không lật cho auto run)
+            // Lật nhân vật theo hướng di chuyển manual
             if (horizontalInput > 0 && !facingRight)
             {
                 Flip();
@@ -408,6 +529,51 @@ namespace CatchMeowIfYouCan.Player
             }
         }
         
+        /// <summary>
+        /// Đẩy mèo ra xa khi chạm catcher - gọi từ CatcherController
+        /// </summary>
+        /// <param name="catcherPosition">Vị trí của catcher để tính hướng đẩy</param>
+        /// <param name="forceMultiplier">Hệ số nhân lực đẩy (optional)</param>
+        public void ApplyKnockback(Vector3 catcherPosition, float forceMultiplier = 1f)
+        {
+            if (!IsAlive || rb == null) return;
+            
+            // Tính hướng đẩy (từ catcher ra xa)
+            Vector2 knockbackDirection = (transform.position - catcherPosition).normalized;
+            
+            // Đảm bảo có component ngang và hơi lên trên
+            if (Mathf.Abs(knockbackDirection.x) < 0.3f)
+            {
+                // Nếu catcher ở thẳng trên/dưới, đẩy về phía player đang quay mặt
+                knockbackDirection.x = facingRight ? 1f : -1f;
+            }
+            
+            // Tính toán lực đẩy
+            Vector2 finalKnockbackForce = new Vector2(
+                knockbackDirection.x * knockbackForce * forceMultiplier,
+                knockbackUpwardForce * forceMultiplier
+            );
+            
+            // Áp dụng knockback
+            isKnockedBack = true;
+            knockbackTimer = knockbackDuration;
+            knockbackVelocity = finalKnockbackForce;
+            
+            // Áp dụng lực ngay lập tức
+            rb.linearVelocity = new Vector2(finalKnockbackForce.x, rb.linearVelocity.y + finalKnockbackForce.y);
+            
+            if (enableKnockbackDebug)
+            {
+                Debug.Log($"[CatController] 💥 KNOCKBACK APPLIED! Direction: {knockbackDirection}, Force: {finalKnockbackForce}, Duration: {knockbackDuration}s");
+                Debug.Log($"[CatController] Catcher at: {catcherPosition}, Cat at: {transform.position}");
+            }
+        }
+        
+        /// <summary>
+        /// Kiểm tra xem có đang bị knockback không
+        /// </summary>
+        public bool IsKnockedBack => isKnockedBack;
+        
 
         
         #endregion
@@ -501,6 +667,295 @@ namespace CatchMeowIfYouCan.Player
                     Die();
                     break;
             }
+        }
+        
+        /// <summary>
+        /// Test: Disable ALL scripts that might interfere
+        /// </summary>
+        [ContextMenu("Test Disable All Interfering Scripts")]
+        public void TestDisableAllInterferingScripts()
+        {
+            Debug.LogError("DISABLING ALL POTENTIAL INTERFERING SCRIPTS...");
+            
+            // Disable FixedBackgroundManager
+            var fixedBgManager = FindFirstObjectByType<CatchMeowIfYouCan.Environment.FixedBackgroundManager>();
+            if (fixedBgManager != null)
+            {
+                fixedBgManager.enabled = false;
+                Debug.LogError("Disabled FixedBackgroundManager");
+            }
+            
+            // Disable EndlessRunManager  
+            var endlessRunManager = FindFirstObjectByType<CatchMeowIfYouCan.Environment.EndlessRunManager>();
+            if (endlessRunManager != null)
+            {
+                endlessRunManager.enabled = false;
+                Debug.LogError("Disabled EndlessRunManager");
+            }
+            
+            // Disable BackgroundScroller
+            var backgroundScroller = FindFirstObjectByType<CatchMeowIfYouCan.Environment.BackgroundScroller>();
+            if (backgroundScroller != null)
+            {
+                backgroundScroller.enabled = false;
+                Debug.LogError("Disabled BackgroundScroller");
+            }
+            
+            // Force clear constraints
+            rb.constraints = RigidbodyConstraints2D.None;
+            rb.linearDamping = 0f;
+            rb.angularDamping = 0f;
+            
+            // Disable survival mode
+            enableSurvivalMode = false;
+            
+            Debug.LogError("ALL SCRIPTS DISABLED - Now testing movement...");
+            
+            // Test movement
+            rb.linearVelocity = new Vector2(-10f, 0f);
+            Invoke(nameof(CheckFreeMovementResult), 1f);
+        }
+        
+        private void CheckFreeMovementResult()
+        {
+            Debug.LogError($"FREE MOVEMENT RESULT - Position: {transform.position}, Velocity: {rb.linearVelocity}");
+            if (rb.linearVelocity.x > -5f)
+            {
+                Debug.LogError("MOVEMENT IS STILL BLOCKED! There must be a hidden Unity constraint or collider!");
+            }
+            else
+            {
+                Debug.Log("Movement is working - scripts were interfering");
+            }
+        }
+        [ContextMenu("Test Force Teleport Left")]
+        public void TestForceTeleportLeft()
+        {
+            Debug.LogError("TESTING: Force teleporting cat far left...");
+            
+            // Disable physics
+            rb.bodyType = RigidbodyType2D.Kinematic;
+            
+            // Teleport directly  
+            transform.position = new Vector3(-20f, transform.position.y, transform.position.z);
+            
+            Debug.LogError($"TELEPORTED! New position: {transform.position}");
+            
+            // Re-enable physics
+            rb.bodyType = RigidbodyType2D.Dynamic;
+            
+            // Check if position stays
+            Invoke(nameof(CheckTeleportResult), 0.1f);
+        }
+        
+        private void CheckTeleportResult()
+        {
+            Debug.LogError($"TELEPORT RESULT - Position after 0.1s: {transform.position}");
+            if (transform.position.x > -15f)
+            {
+                Debug.LogError("TELEPORT FAILED! Something moved the cat back! There's definitely a constraint!");
+            }
+            else
+            {
+                Debug.Log("Teleport successful - cat stayed in new position");
+            }
+        }
+        [ContextMenu("Test Force Move Left")]
+        public void TestForceMoveLeft()
+        {
+            if (rb != null)
+            {
+                Debug.LogWarning("TESTING: Forcing cat to move left rapidly...");
+                
+                // Tắt tất cả logic có thể can thiệp
+                enableSurvivalMode = false;
+                
+                // Force velocity trực tiếp
+                rb.linearVelocity = new Vector2(-15f, rb.linearVelocity.y);
+                
+                // Disable drag
+                rb.linearDamping = 0f;
+                
+                Debug.LogError($"Applied velocity: {rb.linearVelocity}, Position: {transform.position}, Drag: {rb.linearDamping}");
+                
+                // Invoke sau 1 giây để check kết quả
+                Invoke(nameof(CheckTestResult), 1f);
+            }
+        }
+        
+        private void CheckTestResult()
+        {
+            Debug.LogError($"TEST RESULT - Position: {transform.position}, Velocity: {rb.linearVelocity}");
+            if (transform.position.x > -5f)
+            {
+                Debug.LogError("CAT IS STILL BLOCKED! Something is preventing leftward movement!");
+            }
+            else
+            {
+                Debug.Log("Cat moved left successfully!");
+            }
+        }
+        
+        /// <summary>
+        /// Test: Disable tất cả boundary logic
+        /// </summary>
+        [ContextMenu("Test Disable All Boundaries")]
+        public void TestDisableAllBoundaries()
+        {
+            var fixedBgManager = FindFirstObjectByType<CatchMeowIfYouCan.Environment.FixedBackgroundManager>();
+            if (fixedBgManager != null)
+            {
+                fixedBgManager.SetBackgroundLocked(false);
+                fixedBgManager.SetCameraLocked(false);
+                Debug.LogWarning("Disabled all FixedBackgroundManager boundaries!");
+            }
+            
+            // Tắt survival mode tạm thời để test
+            enableSurvivalMode = false;
+            Debug.LogWarning("Disabled survival mode for testing!");
+        }
+        
+        /// <summary>
+        /// Debug player movement state
+        /// </summary>
+        [ContextMenu("Debug Movement State")]
+        public void DebugMovementState()
+        {
+            Debug.Log("=== CAT WORLD DRIFT SURVIVAL DEBUG ===");
+            Debug.Log($"Survival Mode: {enableSurvivalMode}");
+            Debug.Log($"World Drift Speed: {worldDriftSpeed}");
+            Debug.Log($"Backward Drift Force: {backwardDriftForce}");
+            Debug.Log($"Base Friction: {baseFriction}");
+            Debug.Log($"High Friction: {highFriction}");
+            Debug.Log($"Move Speed: {moveSpeed}");
+            Debug.Log($"Is Alive: {IsAlive}");
+            Debug.Log($"Is Grounded: {IsGrounded}");
+            
+            if (rb != null)
+            {
+                Debug.Log($"Velocity: {rb.linearVelocity}");
+                Debug.Log($"Current Drag: {rb.linearDamping}");
+                Debug.Log($"Constraints: {rb.constraints}");
+            }
+            
+            var fixedBgManager = FindFirstObjectByType<CatchMeowIfYouCan.Environment.FixedBackgroundManager>();
+            Debug.Log($"Has Fixed Background: {fixedBgManager != null}");
+            
+            Debug.Log($"Current Input: H={horizontalInput}");
+            Debug.Log($"Position: {transform.position}");
+            
+            // Survival status with world drift info
+            bool movingRight = horizontalInput > 0;
+            bool movingLeft = horizontalInput < 0;
+            bool noInput = horizontalInput == 0;
+            
+            string survivalStatus;
+            if (enableSurvivalMode)
+            {
+                if (movingRight)
+                    survivalStatus = "FIGHTING WORLD + BACKWARD DRIFT";
+                else if (movingLeft)
+                    survivalStatus = "MOVING LEFT (HIGH FRICTION)";
+                else
+                    survivalStatus = fixedBgManager != null ? "DRIFTING WITH WORLD + BACKWARD" : "BACKWARD DRIFT ONLY";
+            }
+            else
+            {
+                survivalStatus = "NORMAL MODE";
+            }
+            
+            Debug.Log($"Survival Status: {survivalStatus}");
+        }
+        
+        /// <summary>
+        /// Toggle survival mode for testing
+        /// </summary>
+        [ContextMenu("Toggle Survival Mode")]
+        public void ToggleSurvivalMode()
+        {
+            enableSurvivalMode = !enableSurvivalMode;
+            Debug.Log($"Survival Mode: {(enableSurvivalMode ? "ENABLED" : "DISABLED")}");
+            
+            if (rb != null)
+            {
+                // Reset friction to base level when toggling
+                rb.linearDamping = baseFriction;
+            }
+        }
+        
+        /// <summary>
+        /// Test backward drift - should show backward movement
+        /// </summary>
+        [ContextMenu("Test Backward Drift")]
+        public void TestBackwardDrift()
+        {
+            Debug.Log("=== TESTING BACKWARD DRIFT ===");
+            Debug.Log("Simulating no input for 5 seconds - cat should drift backward...");
+            
+            StartCoroutine(SimulateInput(0f, 5f));
+        }
+        
+        /// <summary>
+        /// Test fighting against drift
+        /// </summary>
+        [ContextMenu("Test Fight Drift")]
+        public void TestFightDrift()
+        {
+            Debug.Log("=== TESTING FIGHT DRIFT ===");
+            Debug.Log("Simulating holding D for 3 seconds to fight backward drift...");
+            
+            StartCoroutine(SimulateInput(1f, 3f));
+        }
+        
+        /// <summary>
+        /// Test manual control override
+        /// </summary>
+        [ContextMenu("Test Left Movement")]
+        public void TestLeftMovement()
+        {
+            Debug.Log("=== TESTING LEFT MOVEMENT ===");
+            Debug.Log("Simulating left input for 2 seconds...");
+            
+            StartCoroutine(SimulateInput(-1f, 2f));
+        }
+        
+        private System.Collections.IEnumerator SimulateInput(float inputValue, float duration)
+        {
+            float originalInput = horizontalInput;
+            float startTime = Time.time;
+            
+            while (Time.time - startTime < duration)
+            {
+                horizontalInput = inputValue;
+                yield return null;
+            }
+            
+            horizontalInput = originalInput;
+            Debug.Log("Input simulation completed");
+        }
+        
+        [ContextMenu("Test Knockback Right")]
+        public void TestKnockbackRight()
+        {
+            Vector3 fakeCatcherPosition = transform.position + Vector3.left * 2f; // Catcher ở bên trái
+            ApplyKnockback(fakeCatcherPosition, 1f);
+            Debug.Log("[CatController] 💥 Testing knockback to the RIGHT");
+        }
+        
+        [ContextMenu("Test Knockback Left")]
+        public void TestKnockbackLeft()
+        {
+            Vector3 fakeCatcherPosition = transform.position + Vector3.right * 2f; // Catcher ở bên phải
+            ApplyKnockback(fakeCatcherPosition, 1f);
+            Debug.Log("[CatController] 💥 Testing knockback to the LEFT");
+        }
+        
+        [ContextMenu("Test Strong Knockback")]
+        public void TestStrongKnockback()
+        {
+            Vector3 fakeCatcherPosition = transform.position + Vector3.left * 1f; // Catcher gần bên trái
+            ApplyKnockback(fakeCatcherPosition, 2f); // 2x force
+            Debug.Log("[CatController] 💥💥 Testing STRONG knockback!");
         }
         
         #endregion
