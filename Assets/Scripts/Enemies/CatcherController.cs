@@ -61,7 +61,6 @@ namespace CatchMeowIfYouCan.Enemies
         
         [Header("State Debug")]
         [SerializeField] private CatcherState currentState = CatcherState.Hidden;
-        [SerializeField] private bool hasTouchedCat = false;
         [SerializeField] private float chaseTimer = 0f;
         [SerializeField] private float cooldownTimer = 0f; // Timer cho cooldown
         [SerializeField] private Vector3 initialCatPosition; // Vị trí mèo khi bắt đầu chase
@@ -283,7 +282,6 @@ namespace CatchMeowIfYouCan.Enemies
                 case CatcherState.Chasing:
                     chaseTimer += Time.deltaTime; // Đảm bảo chase timer tăng
                     CheckTouchDetection();
-                    CheckEscapeCondition();
                     CheckChaseTimeout();
                     break;
                     
@@ -436,70 +434,41 @@ namespace CatchMeowIfYouCan.Enemies
             
             // Check if TouchCheck is properly set up
             bool touchCheckAvailable = touchCheck != null;
-            bool touchCheckDetected = touchCheckAvailable && touchCheck.IsTouchingCat;
             
             // Only use distance detection as fallback if TouchCheck is NOT available
             bool shouldUseDistance = !touchCheckAvailable;
             bool distanceDetected = shouldUseDistance && distance <= touchDetectionRadius;
             
-            // Debug touch detection - enhanced với TouchCheck info
+            // Debug touch detection
             if (enableDebugLogs && Time.frameCount % 60 == 0) // Every second
             {
                 Debug.Log($"[CatcherController] === TOUCH DETECTION DEBUG ===");
                 Debug.Log($"[CatcherController] Distance: {distance:F2}, Radius: {touchDetectionRadius}");
                 if (touchCheckAvailable)
                 {
-                    Debug.Log($"[CatcherController] ✅ TouchCheck available: {(touchCheckDetected ? "DETECTING CAT" : "No contact")}");
-                    Debug.Log($"[CatcherController] TouchCheck contacts: {touchCheck.CatContactCount}");
+                    Debug.Log($"[CatcherController] ✅ TouchCheck available: {(touchCheck.IsTouchingCat ? "DETECTING CAT" : "No contact")}");
                 }
                 else
                 {
                     Debug.Log($"[CatcherController] ❌ TouchCheck NULL - Using distance fallback: {(distanceDetected ? "DETECTED" : "No Contact")}");
                 }
-                Debug.Log($"[CatcherController] Has touched this cycle: {hasTouchedCat}");
             }
             
-            // IMPORTANT: Only trigger via distance fallback if TouchCheck is not available
-            // TouchCheck will trigger via OnCatTouchedByTouchCheck callback
-            if (shouldUseDistance && distanceDetected && !hasTouchedCat)
+            // Distance fallback - direct death when detected
+            if (shouldUseDistance && distanceDetected)
             {
-                hasTouchedCat = true;
-                if (enableDebugLogs) Debug.Log($"[CatcherController] 🎯 CAT TOUCHED via DISTANCE FALLBACK! Distance: {distance:F2}");
+                if (enableDebugLogs) Debug.Log($"[CatcherController] 🎯 CAT DETECTED via DISTANCE FALLBACK! Distance: {distance:F2} - DIRECT DEATH!");
                 
-                // NO CAMERA SHAKE HERE - Let TouchCheck handle it or distance fallback won't shake
                 OnCatTouched?.Invoke(this);
                 
-                // If cat is very close, catch it
-                if (distance <= touchDetectionRadius * 0.7f)
+                // Direct death - no knockback
+                if (catController != null)
                 {
-                    CatchCat();
+                    if (enableDebugLogs) Debug.Log($"[CatcherController] 💀 DISTANCE DETECTION DEATH - calling OnCaughtByChaser!");
+                    catController.OnCaughtByChaser();
                 }
-            }
-            
-            // Always check for catch if already touched
-            if (hasTouchedCat && distance <= touchDetectionRadius * 0.7f)
-            {
-                CatchCat();
-            }
-        }
-        
-        private void CheckEscapeCondition()
-        {
-            if (!hasTouchedCat) return;
-            
-            float distance = Vector3.Distance(transform.position, catTarget.position);
-            float chaseDistance = Vector3.Distance(initialCatPosition, catTarget.position);
-            
-            // Retreat nếu mèo thoát quá xa hoặc chase quá xa từ vị trí ban đầu
-            if (distance >= escapeDistance || chaseDistance >= maxChaseDistance)
-            {
-                if (enableDebugLogs) 
-                {
-                    string reason = distance >= escapeDistance ? "escaped too far" : "chased too far from initial position";
-                    Debug.Log($"[CatcherController] Cat {reason}! Distance: {distance:F2}, Chase distance: {chaseDistance:F2}");
-                }
-                SetState(CatcherState.Retreating);
-                OnCatEscaped?.Invoke(this);
+                
+                SetState(CatcherState.Success);
             }
         }
         
@@ -507,29 +476,13 @@ namespace CatchMeowIfYouCan.Enemies
         {
             chaseTimer += Time.deltaTime;
             
-            // Timeout nếu chase quá lâu hoặc không touch được mèo trong thời gian ngắn
+            // Timeout nếu chase quá lâu
             bool shouldTimeout = chaseTimer >= chaseTimeout;
-            bool noTouchTimeout = !hasTouchedCat && chaseTimer >= (chaseTimeout * 0.5f); // 50% thời gian nếu không touch
             
-            if (shouldTimeout || noTouchTimeout)
+            if (shouldTimeout)
             {
-                string reason = noTouchTimeout ? "no touch timeout" : "chase timeout";
-                if (enableDebugLogs) Debug.Log($"[CatcherController] {reason}! Retreating... (timer: {chaseTimer:F1}s)");
+                if (enableDebugLogs) Debug.Log($"[CatcherController] chase timeout! Retreating... (timer: {chaseTimer:F1}s)");
                 SetState(CatcherState.Retreating);
-            }
-        }
-        
-        private void CatchCat()
-        {
-            if (enableDebugLogs) Debug.Log($"[CatcherController] Cat caught!");
-            
-            SetState(CatcherState.Success);
-            OnCatCaught?.Invoke(this);
-            
-            // Trigger cat death
-            if (catController != null)
-            {
-                catController.Die();
             }
         }
         
@@ -670,11 +623,10 @@ namespace CatchMeowIfYouCan.Enemies
         
         private void ResetCatcher()
         {
-            hasTouchedCat = false; // Reset cho cycle mới - camera sẽ shake ở lần touch đầu tiên
             chaseTimer = 0f;
             cooldownTimer = triggerCooldown; // Bắt đầu cooldown khi reset
             initialCatPosition = Vector3.zero;
-            if (enableDebugLogs) Debug.Log($"[CatcherController] 🔄 CATCHER RESET - READY FOR NEW CYCLE - Camera shake will trigger on first touch");
+            if (enableDebugLogs) Debug.Log($"[CatcherController] 🔄 CATCHER RESET - READY FOR NEW CYCLE");
             
             // Reset TouchCheck nếu có
             if (touchCheck != null)
@@ -688,59 +640,38 @@ namespace CatchMeowIfYouCan.Enemies
         /// </summary>
         public void OnCatTouchedByTouchCheck(GameObject cat)
         {
-            if (!hasTouchedCat && currentState == CatcherState.Chasing)
+            if (currentState == CatcherState.Chasing)
             {
-                hasTouchedCat = true;
                 float distance = Vector3.Distance(transform.position, cat.transform.position);
                 
                 if (enableDebugLogs) 
                 {
-                    Debug.Log($"[CatcherController] 🎯🎯🎯 CAT TOUCHED VIA TOUCHCHECK! {cat.name} - FIRST CONTACT OF THIS CYCLE");
+                    Debug.Log($"[CatcherController] 🎯🎯🎯 CAT TOUCHED VIA TOUCHCHECK! {cat.name} - DIRECT CONTACT");
                     Debug.Log($"[CatcherController] Distance at contact: {distance:F2}");
-                    Debug.Log($"[CatcherController] Note: Camera shake now triggers on emergence, not touch!");
                 }
-                
-                // 📝 Camera shake moved to emergence trigger (Hidden → Rising)
-                // No longer shake on touch - shake happens when catcher appears!
-                /*
-                if (CameraShake.Instance != null)
-                {
-                    CameraShake.Instance.ShakeOnCatcherContact();
-                    if (enableDebugLogs) Debug.Log("[CatcherController] 📳📳📳 CAMERA SHAKE TRIGGERED via TouchCheck! SUCCESS!");
-                }
-                else
-                {
-                    if (enableDebugLogs) Debug.LogError("[CatcherController] ❌❌❌ CameraShake.Instance is NULL - no shake triggered!");
-                }
-                */
                 
                 OnCatTouched?.Invoke(this);
                 
-                // 💥 Apply knockback to give cat escape time
+                // Direct catch - no knockback, immediate death
                 CatController catController = cat.GetComponent<CatController>();
                 if (catController != null)
                 {
-                    catController.ApplyKnockback(transform.position, 1f);
-                    if (enableDebugLogs) Debug.Log($"[CatcherController] 💥 KNOCKBACK applied to {cat.name}!");
+                    if (enableDebugLogs) Debug.Log($"[CatcherController] � DIRECT DEATH - No knockback, calling OnCaughtByChaser!");
+                    catController.OnCaughtByChaser();
                 }
                 else
                 {
-                    if (enableDebugLogs) Debug.LogWarning($"[CatcherController] No CatController found on {cat.name} - no knockback applied");
+                    if (enableDebugLogs) Debug.LogWarning($"[CatcherController] No CatController found on {cat.name}");
                 }
                 
-                // Check for immediate catch if very close
-                if (distance <= touchDetectionRadius * 0.7f)
-                {
-                    if (enableDebugLogs) Debug.Log($"[CatcherController] Cat very close ({distance:F2}) - attempting immediate catch!");
-                    CatchCat();
-                }
+                // Set success state
+                SetState(CatcherState.Success);
             }
             else
             {
                 if (enableDebugLogs)
                 {
-                    string reason = hasTouchedCat ? "already touched" : $"wrong state ({currentState})";
-                    Debug.Log($"[CatcherController] TouchCheck contact ignored - {reason}");
+                    Debug.Log($"[CatcherController] TouchCheck contact ignored - wrong state ({currentState})");
                 }
             }
         }
@@ -773,13 +704,20 @@ namespace CatchMeowIfYouCan.Enemies
             return currentState;
         }
         
+        /// <summary>
+        /// Kiểm tra xem catcher có đang trong trạng thái chasing không
+        /// </summary>
+        public bool IsInChasingState()
+        {
+            return currentState == CatcherState.Chasing;
+        }
+        
         // Debug methods
         [ContextMenu("Debug Catcher State")]
         public void DebugCatcherState()
         {
             Debug.Log("=== CATCHER STATE DEBUG ===");
             Debug.Log($"Current State: {currentState}");
-            Debug.Log($"Has Touched Cat: {hasTouchedCat}");
             Debug.Log($"Chase Timer: {chaseTimer:F2}s");
             Debug.Log($"Cooldown Timer: {cooldownTimer:F2}s");
             Debug.Log($"Position: {transform.position}");
@@ -791,9 +729,7 @@ namespace CatchMeowIfYouCan.Enemies
             if (catTarget != null)
             {
                 float distance = Vector3.Distance(transform.position, catTarget.position);
-                float chaseDistance = Vector3.Distance(initialCatPosition, catTarget.position);
                 Debug.Log($"Distance to Cat: {distance:F2}");
-                Debug.Log($"Chase Distance from Initial: {chaseDistance:F2}");
                 Debug.Log($"Cat Position: {catTarget.position}");
             }
         }
@@ -903,7 +839,6 @@ namespace CatchMeowIfYouCan.Enemies
             Debug.Log($"Chase Timer: {chaseTimer:F2}s");
             Debug.Log($"Cooldown Timer: {cooldownTimer:F2}s ({(cooldownTimer > 0 ? "BLOCKING TRIGGERS" : "READY TO TRIGGER")})");
             Debug.Log($"Trigger Cooldown Setting: {triggerCooldown}s");
-            Debug.Log($"Has Touched Cat: {hasTouchedCat}");
             Debug.Log($"Touch Detection Radius: {touchDetectionRadius}");
             Debug.Log($"Active Position: {activePosition}");
             Debug.Log($"Hidden Position: {hiddenPosition}");
@@ -912,7 +847,7 @@ namespace CatchMeowIfYouCan.Enemies
             {
                 float distance = Vector3.Distance(transform.position, catTarget.position);
                 Debug.Log($"Distance to Cat: {distance:F2} (Touch radius: {touchDetectionRadius})");
-                Debug.Log($"Should Touch: {(distance <= touchDetectionRadius && !hasTouchedCat)}");
+                Debug.Log($"Will trigger immediate death: {(distance <= touchDetectionRadius)}");
                 
                 // TouchCheck info
                 if (touchCheck != null)
