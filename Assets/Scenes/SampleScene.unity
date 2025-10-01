@@ -263,8 +263,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e6ca6082ff5d79847b608adc29335ad8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player
-  gravity: 19.62
-  jumpForce: 8
+  gravity: 5
+  jumpForce: 10
 --- !u!114 &388922547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -442,6 +442,7 @@ MonoBehaviour:
   - {fileID: -7267094653144622713, guid: d039df9fefe11f943811db5c0eb7c189, type: 3}
   - {fileID: -2646273269100350057, guid: 9a37197dec2061c47a71b4e2eaa2de8e, type: 3}
   - {fileID: 2597811601881517844, guid: 722e362235d2627469391af2b320062b, type: 3}
+  gameSpeed: 1
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -613,7 +614,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   initialGameSpeed: 5
-  gameSpeedIncrease: 0.1
+  gameSpeedIncrease: 2
   totalCoinText: {fileID: 0}
 --- !u!4 &930004019
 Transform:
