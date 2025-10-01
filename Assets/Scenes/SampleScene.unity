@@ -223,11 +223,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BackgroundSpriteChanger
   backgroundRenderer: {fileID: 485838440}
-  backgroundSprites:
+  stageBackgrounds:
+  - {fileID: 2597811601881517844, guid: 722e362235d2627469391af2b320062b, type: 3}
   - {fileID: -7267094653144622713, guid: d039df9fefe11f943811db5c0eb7c189, type: 3}
   - {fileID: -2646273269100350057, guid: 9a37197dec2061c47a71b4e2eaa2de8e, type: 3}
-  - {fileID: 2597811601881517844, guid: 722e362235d2627469391af2b320062b, type: 3}
-  gameSpeed: 1
+  stageTimes:
+  - 0
+  - 10
+  - 20
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -446,6 +449,57 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1349556952}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1116590334
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1116590336}
+  - component: {fileID: 1116590335}
+  m_Layer: 0
+  m_Name: StageManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1116590335
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1116590334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d193de51c95e42a42892b13e529b1ae1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StageManager
+  backgroundRenderer: {fileID: 0}
+  stageBackgrounds: []
+  currentStage: 0
+  stageTimes:
+  - 0
+  - 10
+  - 20
+--- !u!4 &1116590336
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1116590334}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -2.19411, y: -2.31469, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1349556947
 GameObject:
@@ -821,3 +875,4 @@ SceneRoots:
   - {fileID: 930004019}
   - {fileID: 1594454214}
   - {fileID: 1349556952}
+  - {fileID: 1116590336}
