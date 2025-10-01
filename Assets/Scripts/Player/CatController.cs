@@ -59,7 +59,19 @@ namespace CatchMeowIfYouCan.Player
             if (animator != null)
             {
                 animator.SetBool("IsRunning", isRunning);
-                animator.SetBool("IsJumpping", isJumping);
+                animator.SetBool("IsJumping", isJumping);
+            }
+        }
+
+        private void OnTriggerEnter(Collider other)
+        {
+            if (other.CompareTag("Obstacle"))
+            {
+                GameManager.Instance.GameOver();
+            }
+            else if (other.CompareTag("ColectItem"))
+            {
+                Destroy(other.gameObject);       
             }
         }
 
