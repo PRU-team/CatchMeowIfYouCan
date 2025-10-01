@@ -1,6 +1,7 @@
+using Assets.Scripts.Managers;
 using TMPro;
 using UnityEngine;
-
+using UnityEngine.SceneManagement;
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
@@ -12,6 +13,7 @@ public class GameManager : MonoBehaviour
     private int totalCoins;
     private Player player;
     private Spawner spawner;
+    public int HighScore { get; private set; }
     private void Awake()
     {
         if (Instance == null)
@@ -36,6 +38,8 @@ public class GameManager : MonoBehaviour
     {
         player = FindObjectOfType<Player>();
         spawner = FindObjectOfType<Spawner>();
+        HighScore = PlayerPrefs.GetInt("HighScore", 0);
+
 
         NewGame();
     }
@@ -64,7 +68,14 @@ public class GameManager : MonoBehaviour
 
         player.gameObject.SetActive(false);
         spawner.gameObject.SetActive(false);
-
+        if (totalCoins > HighScore)
+        {
+            HighScore = totalCoins;
+            PlayerPrefs.SetInt("HighScore", HighScore);
+            PlayerPrefs.Save();
+        }
+        LeaderboardManager.AddScore(totalCoins);
+        SceneManager.LoadScene(1);
         Debug.Log("Game Over!");
     }
 

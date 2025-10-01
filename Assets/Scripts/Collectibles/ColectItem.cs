@@ -11,7 +11,6 @@ public class ColectItem : MonoBehaviour
 
     void Update()
     {
-        // Di chuy?n coin sang trái
         transform.position += Vector3.left * GameManager.Instance.gameSpeed * Time.deltaTime;
 
         if (transform.position.x < leftEdge)
@@ -20,12 +19,13 @@ public class ColectItem : MonoBehaviour
         }
     }
 
-    private void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("Player"))
         {
-            GameManager.Instance.AddCoin(1);
-            Destroy(gameObject);
+            GameManager.Instance.AddCoin(1); 
+            Destroy(gameObject);            
         }
     }
+
 }
