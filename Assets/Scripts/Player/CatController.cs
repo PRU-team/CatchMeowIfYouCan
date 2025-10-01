@@ -12,6 +12,10 @@ namespace CatchMeowIfYouCan.Player
         [SerializeField] private float moveSpeed = 8f;
         [SerializeField] private float jumpForce = 12f;
         
+        [Header("Endless Runner Settings")]
+        [SerializeField] private bool autoRun = true; // Tự động chạy về phải
+        [SerializeField] private float autoRunSpeed = 5f; // Tốc độ tự động chạy
+        
         [Header("Ground Check")]
         [SerializeField] private Transform groundCheck;
         [SerializeField] private float groundCheckRadius = 0.3f;
@@ -54,7 +58,8 @@ namespace CatchMeowIfYouCan.Player
 
         private void UpdateAnimation()
         {
-            bool isRunning = Mathf.Abs(rb.linearVelocity.x) > 0.1f;
+            // Trong endless runner, player luôn chạy nên IsRunning luôn true
+            bool isRunning = autoRun || Mathf.Abs(rb.linearVelocity.x) > 0.1f;
             bool isJumping = !IsGrounded;
             if (animator != null)
             {
@@ -220,16 +225,41 @@ namespace CatchMeowIfYouCan.Player
             // Di chuyển ngang
             Vector2 velocity = rb.linearVelocity;
             Vector2 oldVelocity = velocity;
-            velocity.x = horizontalInput * moveSpeed;
+            
+            // Kiểm tra xem có FixedBackgroundManager không
+            var fixedBgManager = FindFirstObjectByType<CatchMeowIfYouCan.Environment.FixedBackgroundManager>();
+            bool hasFixedBackground = fixedBgManager != null;
+            
+            // Auto run logic
+            float totalHorizontalInput = horizontalInput;
+            if (autoRun && IsAlive)
+            {
+                if (hasFixedBackground)
+                {
+                    // Với fixed background, player chạy tại chỗ với tốc độ thấp hơn
+                    velocity.x = horizontalInput * moveSpeed + (autoRunSpeed * 0.3f);
+                }
+                else
+                {
+                    // Không có fixed background, player di chuyển bình thường
+                    totalHorizontalInput += 1f; // Luôn di chuyển về phải
+                    velocity.x = totalHorizontalInput * moveSpeed + autoRunSpeed;
+                }
+            }
+            else
+            {
+                velocity.x = horizontalInput * moveSpeed;
+            }
+            
             rb.linearVelocity = velocity;
             
             // Debug movement
-            if (horizontalInput != 0)
+            if (horizontalInput != 0 || autoRun)
             {
-                Debug.Log($"Movement - Input: {horizontalInput}, OldVel: {oldVelocity.x}, NewVel: {velocity.x}, Position: {transform.position.x}");
+                Debug.Log($"Movement - Input: {horizontalInput}, AutoRun: {autoRun}, FixedBG: {hasFixedBackground}, TotalInput: {totalHorizontalInput}, OldVel: {oldVelocity.x}, NewVel: {velocity.x}, Position: {transform.position.x}");
             }
             
-            // Lật nhân vật theo hướng di chuyển
+            // Lật nhân vật theo hướng di chuyển manual (không lật cho auto run)
             if (horizontalInput > 0 && !facingRight)
             {
                 Flip();
