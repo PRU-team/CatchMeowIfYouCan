@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 3
   tags:
   - ColectItem
+  - Background
   layers:
   - Default
   - TransparentFX
@@ -41,6 +42,27 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Background
+    uniqueID: 1107252767
+    locked: 0
+  - name: Ground
+    uniqueID: 2148684229
+    locked: 0
+  - name: Collectibles
+    uniqueID: 2621704551
+    locked: 0
+  - name: Player
+    uniqueID: 4016824773
+    locked: 0
+  - name: Obstacles
+    uniqueID: 333565611
+    locked: 0
+  - name: PowerUps
+    uniqueID: 720485917
+    locked: 0
+  - name: Catcher
+    uniqueID: 2943897301
     locked: 0
   m_RenderingLayers:
   - Default
