@@ -60,3 +60,4 @@ UserSettings/
 .Trashes
 ehthumbs.db
 Thumbs.db
+*.csproj
