@@ -7,6 +7,7 @@ TagManager:
   - ColectItem
   - Background
   - Catcher
+  - Ground
   layers:
   - Default
   - TransparentFX

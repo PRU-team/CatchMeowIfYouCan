@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Assets.Scripts.Managers;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -32,7 +34,8 @@ namespace CatchMeowIfYouCan.Player
         
         [Header("Character Flipping")]
         [SerializeField] private bool facingRight = true;
-        
+        [Header("Scene")]
+        [SerializeField] private GameObject gameOverPanel;
         // Components
         private Rigidbody2D rb;
         private Vector3 originalScale;
@@ -238,41 +241,37 @@ namespace CatchMeowIfYouCan.Player
             OnDeath?.Invoke();
             LoadEndScene();
         }
-        
+
         private void LoadEndScene()
         {
             try
             {
-                if (Application.CanStreamedLevelBeLoaded("EndScene"))
+                // Lưu điểm coin trước khi show panel
+                if (GameManager.Instance != null)
                 {
-                    Debug.Log("[CatController] Loading EndScene by name");
-                    SceneManager.LoadScene("EndScene");
-                    return;
+                    int finalCoins = GameManager.Instance.GetTotalCoins(); // bạn cần hàm này trong GameManager
+                    LeaderboardManager.AddScore(finalCoins);
+                    Debug.Log($"[CatController] Saved score {finalCoins} to Leaderboard");
                 }
-                
-                if (Application.CanStreamedLevelBeLoaded("HighScore"))
+
+                if (gameOverPanel != null)
                 {
-                    Debug.Log("[CatController] EndScene not found, loading HighScore scene as alternative");
-                    SceneManager.LoadScene("HighScore");
-                    return;
+                    gameOverPanel.SetActive(true);
+                    Time.timeScale = 0f; // dừng game
+                    Debug.Log("[CatController] GameOver Panel activated");
                 }
-                
-                if (SceneManager.sceneCountInBuildSettings > 3)
+                else
                 {
-                    Debug.Log("[CatController] Loading scene by index 3 (HighScore)");
-                    SceneManager.LoadScene(3);
-                    return;
+                    Debug.LogWarning("[CatController] GameOverPanel chưa được gán trong Inspector!");
                 }
-                
-                Debug.LogWarning("[CatController] No suitable end scene found, loading first scene as fallback");
-                SceneManager.LoadScene(0);
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"[CatController] Error loading EndScene: {e.Message}");
+                Debug.LogError($"[CatController] Error showing GameOverPanel: {e.Message}");
             }
         }
-        
+
+
         // Collision Detection - ONLY for catcher in chasing state
         private void OnTriggerEnter2D(Collider2D other)
         {
