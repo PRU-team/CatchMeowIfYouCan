@@ -50,12 +50,7 @@ public class GameManager : MonoBehaviour
 
     private void NewGame()
     {
-        //Obstacle[] obstacles = FindObjectsOfType<Obstacle>();
 
-        //foreach (Obstacle obstacle in obstacles)
-        //{
-        //    Destroy(obstacle.gameObject);
-        //}
         totalCoins = 0;
         UpdateCoinUI();
         gameSpeed = initialGameSpeed;
@@ -80,9 +75,9 @@ public class GameManager : MonoBehaviour
             PlayerPrefs.Save();
         }
         LeaderboardManager.AddScore(totalCoins);
-        if (gameOverPanel != null)
-            gameOverPanel.SetActive(true);
+         gameOverPanel.SetActive(true);
         Time.timeScale = 0f;
+
         Debug.Log("Game Over!");
     }
     public int GetTotalCoins()
