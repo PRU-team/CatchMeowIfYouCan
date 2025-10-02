@@ -3,16 +3,48 @@
   "WorkspaceRootPath": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|c:\\users\\asus\\fpt\\pru\\catchmeowifyoucan\\assets\\scripts\\enemies\\catchercontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\enemies\\catchercontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\assets\\scripts\\enemies\\catchermanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\enemies\\catchermanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\assets\\scripts\\managers\\gamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\managers\\gamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|c:\\users\\asus\\fpt\\pru\\catchmeowifyoucan\\assets\\scripts\\obstacles\\obtaclescript.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\obstacles\\obtaclescript.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\assets\\scripts\\player\\catcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\player\\catcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|c:\\users\\asus\\fpt\\pru\\catchmeowifyoucan\\assets\\scripts\\managers\\spawner.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\managers\\spawner.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|c:\\users\\asus\\fpt\\pru\\catchmeowifyoucan\\assets\\scripts\\collectibles\\colectitem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\collectibles\\colectitem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|c:\\users\\asus\\fpt\\pru\\catchmeowifyoucan\\assets\\scripts\\managers\\menumanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\managers\\menumanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|c:\\users\\asus\\fpt\\pru\\catchmeowifyoucan\\assets\\scripts\\managers\\gamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\managers\\gamemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\assets\\scripts\\managers\\highsocremanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\managers\\highsocremanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|c:\\users\\asus\\fpt\\pru\\catchmeowifyoucan\\assets\\scripts\\managers\\highsocremanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\managers\\highsocremanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\assets\\scripts\\managers\\leaderboardmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\managers\\leaderboardmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\assets\\scripts\\managers\\leaderboardui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F399FFB2-FC64-C894-6957-5BD470EB1754}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\managers\\leaderboardui.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -27,40 +59,141 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "CatcherController.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Enemies\\CatcherController.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Enemies\\CatcherController.cs",
+              "ToolTip": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Enemies\\CatcherController.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Enemies\\CatcherController.cs",
+              "ViewState": "AgIAABIEAAAAAAAAAAA/wBQEAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-02T05:40:29.483Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Spawner.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Managers\\Spawner.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Managers\\Spawner.cs",
+              "ToolTip": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Managers\\Spawner.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Managers\\Spawner.cs",
+              "ViewState": "AgIAABcAAAAAAAAAAAAgwCsAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-02T05:18:31.258Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "ColectItem.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Collectibles\\ColectItem.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Collectibles\\ColectItem.cs",
+              "ToolTip": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Collectibles\\ColectItem.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Collectibles\\ColectItem.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-02T04:53:52.233Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ObtacleScript.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Obstacles\\ObtacleScript.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Obstacles\\ObtacleScript.cs",
+              "ToolTip": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Obstacles\\ObtacleScript.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Obstacles\\ObtacleScript.cs",
+              "ViewState": "AgIAAAsAAAAAAAAAAAAQwCUAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-02T04:53:39.176Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
               "Title": "MenuManager.cs",
               "DocumentMoniker": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Managers\\MenuManager.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\Managers\\MenuManager.cs",
               "ToolTip": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Managers\\MenuManager.cs",
               "RelativeToolTip": "Assets\\Scripts\\Managers\\MenuManager.cs",
-              "ViewState": "AgIAAAcAAAAAAAAAAAAgwBcAAAABAAAAAAAAAA==",
+              "ViewState": "AgIAABQAAAAAAAAAAAAgwB0AAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-01T16:55:46.043Z",
+              "WhenOpened": "2025-10-02T03:48:48.002Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 9,
+              "Title": "LeaderboardManager.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Managers\\LeaderboardManager.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Managers\\LeaderboardManager.cs",
+              "ToolTip": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Managers\\LeaderboardManager.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Managers\\LeaderboardManager.cs",
+              "ViewState": "AgIAABUAAAAAAAAAAAAYwA4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-02T03:34:08.595Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "LeaderboardUI.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Managers\\LeaderboardUI.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Managers\\LeaderboardUI.cs",
+              "ToolTip": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Managers\\LeaderboardUI.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Managers\\LeaderboardUI.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-02T03:34:07.586Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
               "Title": "HighsocreManager.cs",
               "DocumentMoniker": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Managers\\HighsocreManager.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\Managers\\HighsocreManager.cs",
               "ToolTip": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Managers\\HighsocreManager.cs",
               "RelativeToolTip": "Assets\\Scripts\\Managers\\HighsocreManager.cs",
-              "ViewState": "AgIAAAEAAAAAAAAAAAAAAAsAAAAiAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAiAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-01T16:47:56.212Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-10-02T03:34:03.472Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "GameManager.cs",
               "DocumentMoniker": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Managers\\GameManager.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\Managers\\GameManager.cs",
               "ToolTip": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Managers\\GameManager.cs",
               "RelativeToolTip": "Assets\\Scripts\\Managers\\GameManager.cs",
-              "ViewState": "AgIAAGIAAAAAAAAAAAAswIAAAAAFAAAAAAAAAA==",
+              "ViewState": "AgIAAHYAAAAAAAAAAAAqwIoAAAAiAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-10-01T16:21:21.802Z",
+              "WhenOpened": "2025-10-02T03:24:41.989Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "CatController.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Player\\CatController.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Player\\CatController.cs",
+              "ToolTip": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Player\\CatController.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Player\\CatController.cs",
+              "ViewState": "AgIAAL4AAAAAAAAAAAAkwBEBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-02T03:21:46.185Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "CatcherManager.cs",
+              "DocumentMoniker": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Enemies\\CatcherManager.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Enemies\\CatcherManager.cs",
+              "ToolTip": "C:\\Users\\ASUS\\FPT\\PRU\\CatchMeowIfYouCan\\Assets\\Scripts\\Enemies\\CatcherManager.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Enemies\\CatcherManager.cs",
+              "ViewState": "AgIAAHEAAAAAAAAAAAAIwIYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-02T03:20:35.966Z",
               "EditorCaption": ""
             }
           ]

@@ -50,12 +50,7 @@ public class GameManager : MonoBehaviour
 
     private void NewGame()
     {
-        //Obstacle[] obstacles = FindObjectsOfType<Obstacle>();
 
-        //foreach (Obstacle obstacle in obstacles)
-        //{
-        //    Destroy(obstacle.gameObject);
-        //}
         totalCoins = 0;
         UpdateCoinUI();
         gameSpeed = initialGameSpeed;
@@ -80,12 +75,15 @@ public class GameManager : MonoBehaviour
             PlayerPrefs.Save();
         }
         LeaderboardManager.AddScore(totalCoins);
-        if (gameOverPanel != null)
-            gameOverPanel.SetActive(true);
+         gameOverPanel.SetActive(true);
         Time.timeScale = 0f;
+
         Debug.Log("Game Over!");
     }
-
+    public int GetTotalCoins()
+    {
+        return totalCoins;
+    }
     private void Update()
     {
         gameSpeed += gameSpeedIncrease * Time.deltaTime;
@@ -117,7 +115,15 @@ public class GameManager : MonoBehaviour
     }
     public void QuitGame()
     {
-        SceneManager.LoadScene(0);
+        if (GameManager.Instance != null)
+        {
+            int finalCoins = GetTotalCoins();   // lấy số coin hiện tại
+            LeaderboardManager.AddScore(finalCoins);
+            Debug.Log($"[GameManager] Saved {finalCoins} coins to Leaderboard before quitting.");
+        }
+
+        Time.timeScale = 1f; // reset lại để tránh scene menu bị dừng
+        SceneManager.LoadScene(0); // quay lại Menu
     }
     public void Play()
     {
@@ -125,6 +131,6 @@ public class GameManager : MonoBehaviour
     }
     public void ScoreScene()
     {
-        SceneManager.LoadScene(2);
+        SceneManager.LoadScene(3);
     }
 }

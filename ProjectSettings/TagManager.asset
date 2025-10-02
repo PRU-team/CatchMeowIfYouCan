@@ -7,6 +7,8 @@ TagManager:
   - ColectItem
   - Background
   - Catcher
+  - Ground
+  - Obtacles
   layers:
   - Default
   - TransparentFX

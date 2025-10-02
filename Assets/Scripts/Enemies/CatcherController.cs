@@ -1040,5 +1040,13 @@ namespace CatchMeowIfYouCan.Enemies
                 default: return Color.white;
             }
         }
+        private void OnTriggerEnter2D(Collider2D collision)
+        {
+            if (collision.CompareTag("Player"))
+            {
+                Debug.Log($"[CatcherController] {name} caught the cat!");
+                OnCatCaught?.Invoke(this); // báo cho CatcherManager
+            }
+        }
     }
 }

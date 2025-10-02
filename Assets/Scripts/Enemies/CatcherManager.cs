@@ -111,25 +111,31 @@ namespace CatchMeowIfYouCan.Enemies
             if (enableGlobalDebugLogs) Debug.Log($"[CatcherManager] Cat touched by: {catcher.name}");
             OnAnyCatTouched?.Invoke(catcher);
         }
-        
+
         private void HandleCatCaught(CatcherController catcher)
         {
-            if (enableGlobalDebugLogs) Debug.Log($"[CatcherManager] Cat caught by: {catcher.name}");
-            
+            Debug.Log($"[CatcherManager] Cat caught by: {catcher.name}");
             gameIsOver = true;
-            
+
             if (pauseGameOnCatch)
             {
-                // Pause game logic can be implemented here
-                // Time.timeScale = 0f; // Uncomment to pause game
+                Time.timeScale = 0f; // Dừng game
             }
-            
+
             OnAnyCatCaught?.Invoke(catcher);
-            
-            // Trigger game over after delay
+
+            // Sau 1 giây gọi GameOver
             Invoke("TriggerGameOver", gameOverDelay);
         }
-        
+
+        private void TriggerGameOver()
+        {
+            Debug.Log("[CatcherManager] Game Over triggered!");
+            OnGameOver?.Invoke();
+           
+            // Gọi GameManager để hiện panel GameOver
+                GameManager.Instance.GameOver();
+        }
         private void HandleCatEscaped(CatcherController catcher)
         {
             if (enableGlobalDebugLogs) Debug.Log($"[CatcherManager] Cat escaped from: {catcher.name}");
@@ -150,11 +156,6 @@ namespace CatchMeowIfYouCan.Enemies
             }
         }
         
-        private void TriggerGameOver()
-        {
-            if (enableGlobalDebugLogs) Debug.Log("[CatcherManager] Game Over triggered!");
-            OnGameOver?.Invoke();
-        }
         
         // Public methods
         public void ResetAllCatchers()

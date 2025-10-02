@@ -7,13 +7,13 @@ public class MenuManager : MonoBehaviour
     public void Play()
     {
         Debug.Log("[MenuManager] Loading Game Scene (index 1)");
-        SceneManager.LoadScene(1);
+        SceneManager.LoadScene(2);
     }
  
     public void HighSocre()
     {
         Debug.Log("[MenuManager] Loading High Score Scene (index 2)");
-        SceneManager.LoadScene(2);
+        SceneManager.LoadScene(3);
     }
     
     public void Guide()
