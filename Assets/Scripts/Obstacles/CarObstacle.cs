@@ -531,7 +531,7 @@ namespace CatchMeowIfYouCan.Obstacles
         private void AlertCatcher()
         {
             // TODO: Alert catcher to player position
-            var catcher = FindObjectOfType<Catcher.CatcherController>();
+            var catcher = FindObjectOfType<Enemies.CatcherController>();
             if (catcher != null)
             {
                 // catcher.AlertToPlayerPosition(playerTransform.position);

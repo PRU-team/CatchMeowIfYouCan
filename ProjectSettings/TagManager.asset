@@ -2,8 +2,13 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!78 &1
 TagManager:
-  serializedVersion: 2
-  tags: []
+  serializedVersion: 3
+  tags:
+  - ColectItem
+  - Background
+  - Catcher
+  - Ground
+  - Obtacles
   layers:
   - Default
   - TransparentFX
@@ -11,10 +16,10 @@ TagManager:
   - Ground
   - Water
   - UI
-  - Player
+  - Buildings
   - Obstacles
   - Collectibles
-  - PowerUps
+  - Player
   - Catcher
   - UI
   - 
@@ -41,3 +46,32 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: Background
+    uniqueID: 1107252767
+    locked: 0
+  - name: Road
+    uniqueID: 926075457
+    locked: 0
+  - name: Ground
+    uniqueID: 2148684229
+    locked: 0
+  - name: Collectibles
+    uniqueID: 2621704551
+    locked: 0
+  - name: Player
+    uniqueID: 4016824773
+    locked: 0
+  - name: Obstacles
+    uniqueID: 333565611
+    locked: 0
+  - name: PowerUps
+    uniqueID: 720485917
+    locked: 0
+  - name: Building
+    uniqueID: 2943897301
+    locked: 0
+  - name: Catcher
+    uniqueID: 431271789
+    locked: 0
+  m_RenderingLayers:
+  - Default

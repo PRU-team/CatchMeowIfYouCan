@@ -22,6 +22,12 @@
 *.pdb
 *.mdb
 
+# Visual Studio IntelliSense files
+*.vsidx
+
+# Database files
+*.db
+
 # Unity3D generated meta files
 *.pidb
 *.booproj
@@ -60,3 +66,4 @@ UserSettings/
 .Trashes
 ehthumbs.db
 Thumbs.db
+*.csproj

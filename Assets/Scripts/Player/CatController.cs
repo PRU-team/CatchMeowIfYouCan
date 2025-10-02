@@ -1,367 +1,387 @@
 using UnityEngine;
-using System.Collections;
+using UnityEngine.SceneManagement;
+using Assets.Scripts.Managers;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace CatchMeowIfYouCan.Player
 {
     /// <summary>
-    /// Main controller for the cat player
-    /// Handles movement between lanes, jumping, sliding, and collision detection
+    /// Simple cat controller with basic movement, jumping, and ground detection
+    /// NO KNOCKBACK - Only death when caught by chaser in chasing state
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D))]
     public class CatController : MonoBehaviour
     {
         [Header("Movement Settings")]
-        [SerializeField] private float forwardSpeed = 5f;
-        [SerializeField] private float laneChangeSpeed = 10f;
-        [SerializeField] private float jumpForce = 15f;
-        [SerializeField] private float slideHeight = 0.5f;
-        [SerializeField] private float slideDuration = 1f;
+        [SerializeField] private float moveSpeed = 8f;
+        [SerializeField] private float jumpForce = 12f;
         
-        [Header("Lane Settings")]
-        [SerializeField] private float[] lanePositions = { -2f, 0f, 2f }; // Left, Center, Right
-        [SerializeField] private int currentLane = 1; // Start in center lane
+        [Header("Survival Mode Settings")]
+        [SerializeField] private bool enableSurvivalMode = true;
+        [SerializeField] private float backwardDriftForce = 3f;
+        [SerializeField] private float worldDriftSpeed = 2f;
+        [SerializeField] private float baseFriction = 2f;
+        [SerializeField] private float highFriction = 5f;
+        [SerializeField] private bool autoRun = false;
         
         [Header("Ground Check")]
         [SerializeField] private Transform groundCheck;
         [SerializeField] private float groundCheckRadius = 0.3f;
         [SerializeField] private LayerMask groundLayerMask = 1;
         
-        [Header("Power-Ups")]
-        [SerializeField] private bool hasRocketShoes = false;
-        [SerializeField] private float rocketShoesMultiplier = 2f;
-        
+        [Header("Character Flipping")]
+        [SerializeField] private bool facingRight = true;
+        [Header("Scene")]
+        [SerializeField] private GameObject gameOverPanel;
         // Components
         private Rigidbody2D rb;
-        private Collider2D col;
-        private CatInput input;
-        private CatAnimator catAnimator;
+        private Vector3 originalScale;
+        private Animator animator;
         
-        // State tracking
+        // State
         public bool IsGrounded { get; private set; }
-        public bool IsSliding { get; private set; }
-        public bool IsMovingBetweenLanes { get; private set; }
         public bool IsAlive { get; private set; } = true;
         
-        // Movement
-        private Vector3 targetPosition;
-        private Coroutine slideCoroutine;
+        // Input
+        private float horizontalInput;
         
         // Events
+        public System.Action OnDeath;
         public System.Action<int> OnCoinCollected;
         public System.Action<string> OnPowerUpCollected;
-        public System.Action OnDeath;
         
         private void Awake()
         {
             rb = GetComponent<Rigidbody2D>();
-            col = GetComponent<Collider2D>();
-            input = GetComponent<CatInput>();
-            catAnimator = GetComponent<CatAnimator>();
-            
-            // Set initial position
-            targetPosition = new Vector3(lanePositions[currentLane], transform.position.y, transform.position.z);
-            transform.position = targetPosition;
+            originalScale = transform.localScale;
+            animator = GetComponent<Animator>();
         }
-        
+
         private void Start()
         {
-            SetupInputEvents();
+            CheckGroundSetup();
         }
-        
-        private void SetupInputEvents()
-        {
-            if (input != null)
-            {
-                input.OnSwipeLeft += MoveLeft;
-                input.OnSwipeRight += MoveRight;
-                input.OnSwipeUp += Jump;
-                input.OnSwipeDown += Slide;
-            }
-        }
-        
+
         private void Update()
         {
-            if (!IsAlive) return;
-            
-            CheckGrounded();
-            MoveForward();
-            HandleLaneMovement();
-            UpdateAnimatorStates();
+            HandleInput();
+            HandleGroundCheck();
+            HandleMovement();
+            HandleJump();
+            CheckBoundaries();
+            UpdateAnimation();
         }
         
-        private void CheckGrounded()
+        private void HandleInput()
         {
-            IsGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayerMask);
-        }
-        
-        private void MoveForward()
-        {
-            // Constant forward movement
-            transform.Translate(Vector3.right * forwardSpeed * Time.deltaTime);
-        }
-        
-        private void HandleLaneMovement()
-        {
-            if (IsMovingBetweenLanes)
+            horizontalInput = 0f;
+            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
             {
-                // Smooth movement to target lane
-                Vector3 currentPos = transform.position;
-                Vector3 newPos = Vector3.MoveTowards(currentPos, targetPosition, laneChangeSpeed * Time.deltaTime);
-                transform.position = newPos;
-                
-                // Check if reached target
-                if (Vector3.Distance(transform.position, targetPosition) < 0.1f)
+                horizontalInput = -1f;
+            }
+            else if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
+            {
+                horizontalInput = 1f;
+            }
+        }
+        
+        private void HandleGroundCheck()
+        {
+            bool wasGrounded = IsGrounded;
+            
+            if (groundCheck != null)
+            {
+                IsGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayerMask);
+            }
+            else
+            {
+                Vector2 rayStart = new Vector2(transform.position.x, transform.position.y - 0.5f);
+                RaycastHit2D hit = Physics2D.Raycast(rayStart, Vector2.down, 1f, groundLayerMask);
+                IsGrounded = hit.collider != null;
+            }
+        }
+        
+        private void HandleMovement()
+        {
+            // No more knockback checks - free movement always
+            
+            if (rb == null)
+            {
+                Debug.LogError("Rigidbody2D is null!");
+                return;
+            }
+            
+            Vector2 velocity = rb.linearVelocity;
+            bool movingRight = horizontalInput > 0;
+            bool movingLeft = horizontalInput < 0;
+            bool noInput = horizontalInput == 0;
+            
+            if (enableSurvivalMode)
+            {
+                if (movingRight)
                 {
-                    transform.position = targetPosition;
-                    IsMovingBetweenLanes = false;
+                    velocity.x = horizontalInput * moveSpeed;
+                    rb.linearDamping = Mathf.Lerp(rb.linearDamping, baseFriction, Time.deltaTime * 3f);
+                }
+                else if (movingLeft)
+                {
+                    velocity.x = horizontalInput * moveSpeed;
+                    rb.linearDamping = Mathf.Lerp(rb.linearDamping, baseFriction * 1.5f, Time.deltaTime * 3f);
+                }
+                else
+                {
+                    var fixedBgManager = FindFirstObjectByType<CatchMeowIfYouCan.Environment.FixedBackgroundManager>();
+                    bool hasFixedBackground = fixedBgManager != null;
+                    
+                    if (hasFixedBackground)
+                    {
+                        velocity.x = -worldDriftSpeed - backwardDriftForce;
+                    }
+                    else
+                    {
+                        float currentVelX = velocity.x;
+                        velocity.x = currentVelX - (backwardDriftForce * Time.deltaTime);
+                    }
+                    
+                    rb.linearDamping = Mathf.Lerp(rb.linearDamping, highFriction, Time.deltaTime * 3f);
                 }
             }
-        }
-        
-        private void UpdateAnimatorStates()
-        {
-            if (catAnimator != null)
+            else
             {
-                catAnimator.SetGrounded(IsGrounded);
-                catAnimator.SetSliding(IsSliding);
-                catAnimator.SetMovingBetweenLanes(IsMovingBetweenLanes);
+                velocity.x = horizontalInput * moveSpeed;
+                rb.linearDamping = baseFriction;
+            }
+            
+            rb.linearVelocity = velocity;
+            
+            // Character flipping
+            if (horizontalInput > 0 && !facingRight)
+            {
+                Flip();
+            }
+            else if (horizontalInput < 0 && facingRight)
+            {
+                Flip();
             }
         }
         
-        #region Input Handlers
-        
-        private void MoveLeft()
+        private void HandleJump()
         {
-            if (!IsAlive || IsMovingBetweenLanes) return;
-            
-            if (currentLane > 0)
+            if (IsGrounded && (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow)))
             {
-                currentLane--;
-                targetPosition = new Vector3(lanePositions[currentLane], transform.position.y, transform.position.z);
-                IsMovingBetweenLanes = true;
-            }
-        }
-        
-        private void MoveRight()
-        {
-            if (!IsAlive || IsMovingBetweenLanes) return;
-            
-            if (currentLane < lanePositions.Length - 1)
-            {
-                currentLane++;
-                targetPosition = new Vector3(lanePositions[currentLane], transform.position.y, transform.position.z);
-                IsMovingBetweenLanes = true;
+                Jump();
             }
         }
         
         private void Jump()
         {
-            if (!IsAlive || !IsGrounded || IsSliding) return;
-            
-            float jumpMultiplier = hasRocketShoes ? rocketShoesMultiplier : 1f;
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce * jumpMultiplier);
-            
-            if (catAnimator != null)
-            {
-                catAnimator.TriggerJump();
-            }
+            Vector2 velocity = rb.linearVelocity;
+            velocity.y = jumpForce;
+            rb.linearVelocity = velocity;
         }
         
-        private void Slide()
+        private void Flip()
         {
-            if (!IsAlive || !IsGrounded || IsSliding) return;
+            facingRight = !facingRight;
             
-            if (slideCoroutine != null)
+            if (facingRight)
             {
-                StopCoroutine(slideCoroutine);
+                transform.localScale = originalScale;
             }
-            
-            slideCoroutine = StartCoroutine(SlideCoroutine());
+            else
+            {
+                transform.localScale = new Vector3(-originalScale.x, originalScale.y, originalScale.z);
+            }
         }
         
-        #endregion
-        
-        private IEnumerator SlideCoroutine()
+        private void CheckBoundaries()
         {
-            IsSliding = true;
-            
-            // Lower the collider
-            Vector3 originalScale = col.transform.localScale;
-            col.transform.localScale = new Vector3(originalScale.x, slideHeight, originalScale.z);
-            
-            // Trigger slide animation
-            if (catAnimator != null)
+            if (transform.position.y < -10f)
             {
-                catAnimator.TriggerSlide();
+                Vector3 safePos = new Vector3(0f, 2f, transform.position.z);
+                transform.position = safePos;
+                
+                if (rb != null)
+                {
+                    rb.linearVelocity = Vector2.zero;
+                }
             }
-            
-            yield return new WaitForSeconds(slideDuration);
-            
-            // Restore collider
-            col.transform.localScale = originalScale;
-            IsSliding = false;
-            slideCoroutine = null;
         }
         
-        #region Collision Detection
+        private void UpdateAnimation()
+        {
+            bool isRunning = autoRun || Mathf.Abs(rb.linearVelocity.x) > 0.1f;
+            bool isJumping = !IsGrounded;
+            if (animator != null)
+            {
+                animator.SetBool("IsRunning", isRunning);
+                animator.SetBool("IsJumping", isJumping);
+            }
+        }
         
+        private void CheckGroundSetup()
+        {
+            if (groundCheck == null)
+            {
+                Debug.LogWarning("GroundCheck Transform is not assigned! Using fallback raycast method.");
+            }
+        }
+        
+        /// <summary>
+        /// ONLY death condition: When caught by chaser in chasing state
+        /// </summary>
+        public void OnCaughtByChaser()
+        {
+            Debug.Log("[CatController] 💀 CAUGHT BY CATCHER! Game Over - Loading EndScene...");
+            
+            IsAlive = false;
+            OnDeath?.Invoke();
+            LoadEndScene();
+        }
+
+        private void LoadEndScene()
+        {
+            try
+            {
+                // Lưu điểm coin trước khi show panel
+                if (GameManager.Instance != null)
+                {
+                    int finalCoins = GameManager.Instance.GetTotalCoins(); // bạn cần hàm này trong GameManager
+                    LeaderboardManager.AddScore(finalCoins);
+                    Debug.Log($"[CatController] Saved score {finalCoins} to Leaderboard");
+                }
+
+                if (gameOverPanel != null)
+                {
+                    gameOverPanel.SetActive(true);
+                    Time.timeScale = 0f; // dừng game
+                    Debug.Log("[CatController] GameOver Panel activated");
+                }
+                else
+                {
+                    Debug.LogWarning("[CatController] GameOverPanel chưa được gán trong Inspector!");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[CatController] Error showing GameOverPanel: {e.Message}");
+            }
+        }
+
+
+        // Collision Detection - ONLY for catcher in chasing state
         private void OnTriggerEnter2D(Collider2D other)
         {
-            if (!IsAlive) return;
-            
             switch (other.tag)
             {
-                case "Obstacle":
-                    HandleObstacleCollision();
-                    break;
-                    
-                case "Catcher":
-                    HandleCatcherCollision();
-                    break;
-                    
                 case "Coin":
-                    HandleCoinCollection(other);
+                    OnCoinCollected?.Invoke(10);
+                    Destroy(other.gameObject);
                     break;
                     
                 case "PowerUp":
-                    HandlePowerUpCollection(other);
-                    break;
-            }
-        }
-        
-        private void HandleObstacleCollision()
-        {
-            // Check if can jump over with rocket shoes
-            if (hasRocketShoes && !IsGrounded)
-            {
-                return; // Player jumped over the obstacle
-            }
-            
-            Die();
-        }
-        
-        private void HandleCatcherCollision()
-        {
-            Die();
-        }
-        
-        private void HandleCoinCollection(Collider2D coinCollider)
-        {
-            // For now, use default coin value until FishCoin is created
-            int coinValue = 10; // default value
-            OnCoinCollected?.Invoke(coinValue);
-            
-            // Destroy the coin object
-            Destroy(coinCollider.gameObject);
-        }
-        
-        private void HandlePowerUpCollection(Collider2D powerUpCollider)
-        {
-            // For now, handle power-ups by tag until PowerUpBase is created
-            string powerUpType = powerUpCollider.name; // or use a custom component
-            OnPowerUpCollected?.Invoke(powerUpType);
-            
-            // Destroy the power-up object
-            Destroy(powerUpCollider.gameObject);
-            
-            // Apply power-up effects
-            ApplyPowerUp(powerUpType);
-        }
-        
-        #endregion
-        
-        #region Power-Up System
-        
-        private void ApplyPowerUp(string powerUpType)
-        {
-            switch (powerUpType)
-            {
-                case "RocketShoes":
-                    StartCoroutine(RocketShoesPowerUp());
+                    OnPowerUpCollected?.Invoke(other.name);
+                    Destroy(other.gameObject);
                     break;
                     
-                case "Magnet":
-                    StartCoroutine(MagnetPowerUp());
+                case "Catcher":
+                    Debug.Log($"[CatController] 🎯 CATCHER COLLISION DETECTED!");
+                    
+                    var catcherController = other.GetComponentInParent<CatchMeowIfYouCan.Enemies.CatcherController>();
+                    
+                    if (catcherController == null)
+                    {
+                        catcherController = other.GetComponent<CatchMeowIfYouCan.Enemies.CatcherController>();
+                        if (catcherController == null)
+                        {
+                            Debug.LogError($"[CatController] ❌ CatcherController NOT FOUND in object: {other.name}");
+                            return;
+                        }
+                    }
+                    
+                    bool isChasing = catcherController.IsInChasingState();
+                    Debug.Log($"[CatController] 🔍 Catcher state check - IsInChasingState: {isChasing}");
+                    
+                    if (isChasing)
+                    {
+                        Debug.Log("[CatController] 🚨 CONTACTED CATCHER IN CHASING STATE! Immediate Game Over!");
+                        OnCaughtByChaser();
+                    }
+                    else
+                    {
+                        Debug.Log("[CatController] Contacted catcher but not in chasing state - no effect");
+                    }
                     break;
             }
         }
         
-        private IEnumerator RocketShoesPowerUp()
+        // Public methods for external control
+        public void MoveLeft()
         {
-            hasRocketShoes = true;
-            yield return new WaitForSeconds(10f); // 10 seconds duration
-            hasRocketShoes = false;
+            horizontalInput = -1f;
         }
         
-        private IEnumerator MagnetPowerUp()
+        public void MoveRight()
         {
-            // Enable coin magnet effect
-            // This would be handled by a separate magnet script
-            yield return new WaitForSeconds(8f); // 8 seconds duration
+            horizontalInput = 1f;
         }
         
-        #endregion
-        
-        private void Die()
+        public void StopMovement()
         {
-            if (!IsAlive) return;
-            
-            IsAlive = false;
-            rb.linearVelocity = Vector2.zero;
-            
-            if (catAnimator != null)
+            horizontalInput = 0f;
+        }
+        
+        public void JumpAction()
+        {
+            if (IsGrounded)
             {
-                catAnimator.TriggerHit();
+                Jump();
             }
-            
-            OnDeath?.Invoke();
         }
         
-        // Public methods for external access
         public void ResetPlayer()
         {
             IsAlive = true;
-            currentLane = 1;
-            targetPosition = new Vector3(lanePositions[currentLane], transform.position.y, transform.position.z);
-            transform.position = targetPosition;
-            IsSliding = false;
-            IsMovingBetweenLanes = false;
-            hasRocketShoes = false;
+            horizontalInput = 0f;
             
-            if (slideCoroutine != null)
+            if (rb != null)
             {
-                StopCoroutine(slideCoroutine);
-                slideCoroutine = null;
+                rb.linearVelocity = Vector2.zero;
             }
+            
+            facingRight = true;
+            transform.localScale = originalScale;
+            
+            Vector3 resetPos = new Vector3(0f, 2f, transform.position.z);
+            transform.position = resetPos;
+            
+            Debug.Log($"Player reset to position: {resetPos}");
+        }
+        
+        // Debug methods
+        [ContextMenu("Test Instant Game Over")]
+        public void TestInstantGameOver()
+        {
+            Debug.Log("[CatController] 🧪 TESTING INSTANT GAME OVER!");
+            OnCaughtByChaser();
         }
         
         private void OnDrawGizmos()
         {
-            // Draw lane positions
-            Gizmos.color = Color.green;
-            for (int i = 0; i < lanePositions.Length; i++)
-            {
-                Vector3 lanePos = new Vector3(lanePositions[i], transform.position.y, transform.position.z);
-                Gizmos.DrawWireCube(lanePos, Vector3.one * 0.5f);
-            }
-            
-            // Draw ground check
             if (groundCheck != null)
             {
                 Gizmos.color = IsGrounded ? Color.green : Color.red;
                 Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
             }
-        }
-        
-        private void OnDestroy()
-        {
-            // Cleanup events
-            if (input != null)
+            
+            if (Application.isPlaying && rb != null)
             {
-                input.OnSwipeLeft -= MoveLeft;
-                input.OnSwipeRight -= MoveRight;
-                input.OnSwipeUp -= Jump;
-                input.OnSwipeDown -= Slide;
+                Gizmos.color = Color.magenta;
+                Vector3 velocityEnd = transform.position + new Vector3(rb.linearVelocity.x, rb.linearVelocity.y, 0) * 0.1f;
+                Gizmos.DrawLine(transform.position, velocityEnd);
             }
         }
     }
